@@ -9,8 +9,8 @@ import { placeLabel } from "@/lib/constants/places";
 
 export default function AdminPage() {
   const {
-    entries, serverEntries, sampleCount, userCount, hydrated,
-    error, remove, clearAllServer, refetch,
+    entries, userCount, hydrated, error,
+    remove, clearAllServer, refetch,
   } = useCommutes();
 
   const [msg, setMsg] = useState<string | null>(null);
@@ -22,7 +22,7 @@ export default function AdminPage() {
       .then((r) => r.json())
       .then((d) => setBackend(d.backend ?? ""))
       .catch(() => setBackend("알 수 없음"));
-  }, [serverEntries.length]);
+  }, [userCount]);
 
   function exportCSV() {
     const header = [
@@ -33,7 +33,7 @@ export default function AdminPage() {
       "currentMinutes", "satisfaction", "expressIntent",
       "note",
     ].join(",");
-    const rows = serverEntries.map((e) => {
+    const rows = entries.map((e) => {
       const fromName = placeLabel(e.fromPlaceId, e.fromCustomText);
       const toName   = placeLabel(e.toPlaceId, e.toCustomText);
       return [
@@ -59,7 +59,7 @@ export default function AdminPage() {
 
   async function handleClearAll() {
     if (!confirm(
-      `서버에 누적된 사용자 응답 ${serverEntries.length}건을 모두 삭제합니다.\n` +
+      `서버에 누적된 사용자 응답 ${entries.length}건을 모두 삭제합니다.\n` +
       `(시드 샘플 데이터는 코드에 있어 영향 없음)\n\n계속하시겠습니까?`
     )) return;
     try {
@@ -84,7 +84,7 @@ export default function AdminPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      {/* 동아리원 안내 */}
+      {/* 어드민 안내 */}
       <div
         className="rounded-2xl px-4 py-3 flex items-start gap-2 text-sm"
         style={{
@@ -94,7 +94,7 @@ export default function AdminPage() {
       >
         <Lock size={14} className="mt-0.5 shrink-0" />
         <div>
-          <p className="font-bold">동아리원 전용 페이지</p>
+          <p className="font-bold">어드민 전용 페이지</p>
           <p className="text-xs opacity-80 mt-0.5">
             URL 직접 입력으로만 접근 — 메뉴에 노출되지 않습니다.
           </p>
@@ -153,10 +153,9 @@ export default function AdminPage() {
           <CardTitle>응답 요약</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-3 gap-3 text-center">
-            <Stat label="전체 (분석용)" value={hydrated ? `${entries.length}` : "—"} />
-            <Stat label="시드 샘플" value={`${sampleCount}`} muted />
-            <Stat label="실제 응답" value={hydrated ? `${userCount}` : "—"} accent />
+          <div className="grid grid-cols-2 gap-3 text-center">
+            <Stat label="전체 응답" value={hydrated ? `${entries.length}` : "—"} />
+            <Stat label="고유 사용자(추정)" value={hydrated ? `${userCount}` : "—"} accent />
           </div>
           {error && (
             <p className="text-[11px] text-rose-600 dark:text-rose-400 mt-3 font-semibold">
@@ -172,11 +171,11 @@ export default function AdminPage() {
           <CardTitle>데이터 액션</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-2.5">
-          <Button onClick={exportCSV} variant="secondary" disabled={serverEntries.length === 0}>
-            <Download size={16} /> 실제 응답 CSV 내보내기 ({serverEntries.length}건)
+          <Button onClick={exportCSV} variant="secondary" disabled={entries.length === 0}>
+            <Download size={16} /> 실제 응답 CSV 내보내기 ({entries.length}건)
           </Button>
-          <Button onClick={handleClearAll} variant="danger" disabled={serverEntries.length === 0}>
-            <Trash2 size={16} /> 전체 응답 삭제 ({serverEntries.length}건)
+          <Button onClick={handleClearAll} variant="danger" disabled={entries.length === 0}>
+            <Trash2 size={16} /> 전체 응답 삭제 ({entries.length}건)
           </Button>
           {msg && (
             <div className="text-xs px-3 py-2.5 rounded-lg font-semibold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
@@ -189,18 +188,18 @@ export default function AdminPage() {
       {/* 응답 목록 */}
       <Card>
         <CardHeader>
-          <CardTitle>실제 응답 ({serverEntries.length}건)</CardTitle>
+          <CardTitle>실제 응답 ({entries.length}건)</CardTitle>
         </CardHeader>
         <CardContent>
           {!hydrated ? (
             <p className="text-sm text-[var(--text-muted)] text-center py-6">불러오는 중...</p>
-          ) : serverEntries.length === 0 ? (
+          ) : entries.length === 0 ? (
             <p className="text-sm text-[var(--text-muted)] text-center py-6">
               아직 사용자가 제출한 응답이 없습니다.
             </p>
           ) : (
             <div className="flex flex-col gap-2">
-              {serverEntries.map((e) => (
+              {entries.map((e) => (
                 <div
                   key={e.id}
                   className="rounded-xl px-3 py-2.5 bg-[var(--bg-soft)] flex items-start gap-2 text-xs"

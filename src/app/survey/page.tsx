@@ -300,7 +300,7 @@ function PlaceField({
     (grouped[p.category] ??= []).push(p);
   }
   const orderedCats: Array<keyof typeof CATEGORY_LABEL> = [
-    "subway", "academy", "residence", "office", "facility", "park", "outside", "other",
+    "subway", "academy", "residence", "office", "facility", "park", "other",
   ];
 
   return (

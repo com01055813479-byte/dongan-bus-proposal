@@ -225,21 +225,21 @@ export default function SettingsPage() {
         <CardContent className="flex flex-col">
           <InfoRow label="버전" value="0.1.0" />
           <InfoRow label="프로젝트" value="동안구 급행 버스 제안" />
-          <InfoRow label="용도" value="학교 동아리 비영리" />
+          <InfoRow label="용도" value="학생 비영리 프로젝트" />
           <InfoRow label="지도" value="네이버 지도 (예정)" />
           <InfoRow label="저장소" value="브라우저 localStorage" />
           <InfoRow label="프레임워크" value="Next.js 15 · Tailwind v4" last />
         </CardContent>
       </Card>
 
-      {/* 동아리원 접근 */}
+      {/* 어드민 접근 */}
       <Card>
         <CardHeader>
           <CardTitle>
             <span className="flex items-center gap-2">
               <Lock size={14} className="text-[var(--text-muted)]" />
               <span className="text-sm text-[var(--text-muted)] font-medium">
-                동아리원 접근
+                어드민 접근
               </span>
             </span>
           </CardTitle>

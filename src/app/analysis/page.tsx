@@ -1,7 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { BarChart3, TrendingUp, Clock, Bus, Star, ThumbsUp, AlertTriangle, Sparkles } from "lucide-react";
+import {
+  BarChart3, TrendingUp, Clock, Bus, Star, ThumbsUp,
+  AlertTriangle, Sparkles, Info, X,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { useCommutes } from "@/lib/hooks/useCommutes";
 import {
@@ -10,8 +14,27 @@ import {
   avgSatisfaction, avgCurrentMinutes, avgExpressIntent, pctHighIntent,
 } from "@/lib/algorithms/odAnalysis";
 
+// ── 점수 산출 공식 (한 곳에 정의 → 분석 페이지 안내와 일치) ────────
+const WEIGHT_UNSATISFACTION = 0.25;
+const WEIGHT_TIME           = 0.25;
+const WEIGHT_INTENT         = 0.50;
+const TIME_CAP_MINUTES      = 30;
+
+function calcNeedScore(satAvg: number, minAvg: number, intentAvg: number): number {
+  // 각 컴포넌트 0~100 정규화
+  const unsatComp   = satAvg > 0    ? Math.max(0, (5 - satAvg) / 4 * 100) : 0;
+  const timeComp    = Math.min(minAvg / TIME_CAP_MINUTES, 1) * 100;
+  const intentComp  = intentAvg > 0 ? (intentAvg - 1) / 4 * 100           : 0;
+  return Math.round(
+    unsatComp  * WEIGHT_UNSATISFACTION +
+    timeComp   * WEIGHT_TIME +
+    intentComp * WEIGHT_INTENT
+  );
+}
+
 export default function AnalysisPage() {
-  const { entries, userCount, sampleCount, hydrated } = useCommutes();
+  const { entries, userCount, hydrated } = useCommutes();
+  const [showFormula, setShowFormula] = useState(false);
 
   const topPairsDirected   = aggregateOD(entries).slice(0, 10);
   const topPairsBidi       = aggregateODBidirectional(entries).slice(0, 8);
@@ -26,13 +49,8 @@ export default function AnalysisPage() {
   const maxModeCount = Math.max(...Object.values(modes), 1);
   const maxPairCount = topPairsBidi[0]?.totalCount ?? 1;
 
-  // 급행 필요성 점수 (단순 휴리스틱)
-  // - 만족도 낮을수록 ↑
-  // - 평균 소요 시간 길수록 ↑
-  // - 급행 의향 높을수록 ↑
-  const needScore = Math.round(
-    ((5 - satAvg) * 20 + Math.min(minAvg, 60) + (intentAvg - 1) * 25) / 3
-  );
+  const hasData = entries.length > 0;
+  const needScore = hasData ? calcNeedScore(satAvg, minAvg, intentAvg) : 0;
 
   return (
     <div className="flex flex-col gap-5">
@@ -54,104 +72,118 @@ export default function AnalysisPage() {
         <CardContent>
           <div className="grid grid-cols-3 gap-3 text-center">
             <Stat icon={<TrendingUp size={14} />} label="총 응답" value={hydrated ? `${entries.length}건` : "—"} />
-            <Stat icon={<Bus size={14} />} label="실제 응답" value={hydrated ? `${userCount}건` : "—"} accent />
+            <Stat icon={<Bus size={14} />} label="고유 사용자" value={hydrated ? `${userCount}건` : "—"} accent />
             <Stat icon={<Star size={14} />} label="평균 만족도" value={hydrated ? `${satAvg.toFixed(1)}/5` : "—"} />
           </div>
-          <p className="text-[11px] text-[var(--text-muted)] mt-3 leading-relaxed">
-            시드 샘플 {sampleCount}건 + 실제 사용자 응답을 합쳐 분석합니다.
-          </p>
+          {!hasData && hydrated && (
+            <p className="text-[11px] text-[var(--text-muted)] mt-3 leading-relaxed text-center">
+              아직 응답 데이터가 없습니다. 통근 설문에 참여해 주세요.
+            </p>
+          )}
         </CardContent>
       </Card>
 
-      {/* 🔥 급행 필요성 점수 — 정책 제안의 핵심 카드 */}
+      {/* 🔥 급행 필요성 점수 */}
       <Card>
         <CardHeader>
           <CardTitle>
-            <span className="flex items-center gap-2">
-              <Sparkles size={16} className="text-[var(--accent)]" />
-              급행 셔틀 필요성 점수
+            <span className="flex items-center justify-between gap-2">
+              <span className="flex items-center gap-2">
+                <Sparkles size={16} className="text-[var(--accent)]" />
+                급행 셔틀 필요성 점수
+              </span>
+              <button
+                onClick={() => setShowFormula(true)}
+                className="text-[var(--text-muted)] hover:text-[var(--accent)] flex items-center gap-1 text-xs font-normal"
+                aria-label="산출 방식 보기"
+              >
+                <Info size={14} />
+                산출 방식
+              </button>
             </span>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-end justify-center gap-1 my-2">
-            <span className="text-5xl font-black text-[var(--accent)] tabular-nums leading-none">{needScore}</span>
-            <span className="text-lg text-[var(--text-muted)] font-bold pb-1">/ 100</span>
-          </div>
-          <div className="w-full h-2.5 rounded-full bg-[var(--bg-soft)] overflow-hidden mb-3">
-            <div
-              className="h-full rounded-full transition-all"
-              style={{
-                width: `${Math.max(0, Math.min(100, needScore))}%`,
-                background: needScore >= 70 ? "#ef4444" : needScore >= 50 ? "#f97316" : "#22c55e",
-              }}
+          {!hasData ? (
+            <p className="text-sm text-[var(--text-muted)] text-center py-6">
+              데이터 부족 — 점수 산출 불가
+            </p>
+          ) : (
+            <>
+              <div className="flex items-end justify-center gap-1 my-2">
+                <span className="text-5xl font-black text-[var(--accent)] tabular-nums leading-none">{needScore}</span>
+                <span className="text-lg text-[var(--text-muted)] font-bold pb-1">/ 100</span>
+              </div>
+              <div className="w-full h-2.5 rounded-full bg-[var(--bg-soft)] overflow-hidden mb-3">
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{
+                    width: `${Math.max(0, Math.min(100, needScore))}%`,
+                    background: needScore >= 70 ? "#ef4444" : needScore >= 50 ? "#f97316" : "#22c55e",
+                  }}
+                />
+              </div>
+              <p className="text-xs text-[var(--text-muted)] leading-relaxed text-center">
+                {needScore >= 70 ? (
+                  <><strong className="text-rose-600 dark:text-rose-400">매우 높음</strong> — 급행 셔틀 도입 시 즉각적인 효과 예상</>
+                ) : needScore >= 50 ? (
+                  <><strong className="text-orange-600 dark:text-orange-400">높음</strong> — 도입 검토 필요</>
+                ) : needScore >= 30 ? (
+                  <><strong className="text-amber-600 dark:text-amber-400">보통</strong> — 추가 데이터 수집 필요</>
+                ) : (
+                  <><strong className="text-emerald-600 dark:text-emerald-400">낮음</strong> — 현재 시스템 충분</>
+                )}
+              </p>
+              <div className="grid grid-cols-3 gap-2 mt-4 text-center">
+                <MiniStat label="평균 소요" value={`${minAvg.toFixed(0)}분`} />
+                <MiniStat label="평균 만족도" value={`${satAvg.toFixed(1)}/5`} />
+                <MiniStat label="이용 의향" value={`${intentAvg.toFixed(1)}/5`} />
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* 핵심 근거 */}
+      {hasData && (
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              <span className="flex items-center gap-2">
+                <AlertTriangle size={16} className="text-rose-500" />
+                핵심 근거 (시청 제안용)
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-2.5">
+            <EvidenceRow
+              num="01" title="수요"
+              value={`주 ${topPairsBidi[0]?.totalCount ?? 0}회`}
+              desc={`가장 인기 구간 (${topPairsBidi[0]?.fromLabel ?? "—"} ↔ ${topPairsBidi[0]?.toLabel ?? "—"})에서 매주 ${topPairsBidi[0]?.totalCount ?? 0}회 이동 발생`}
             />
-          </div>
-          <p className="text-xs text-[var(--text-muted)] leading-relaxed text-center">
-            {needScore >= 70 ? (
-              <>
-                <strong className="text-rose-600 dark:text-rose-400">매우 높음</strong> — 급행 셔틀 도입 시 즉각적인 효과 예상
-              </>
-            ) : needScore >= 50 ? (
-              <>
-                <strong className="text-orange-600 dark:text-orange-400">높음</strong> — 도입 검토 필요
-              </>
-            ) : (
-              <>
-                <strong className="text-emerald-600 dark:text-emerald-400">보통</strong> — 추가 데이터 수집 필요
-              </>
-            )}
-          </p>
-          <div className="grid grid-cols-3 gap-2 mt-4 text-center">
-            <MiniStat label="평균 소요" value={`${minAvg.toFixed(0)}분`} />
-            <MiniStat label="평균 만족도" value={`${satAvg.toFixed(1)}/5`} />
-            <MiniStat label="이용 의향" value={`${intentAvg.toFixed(1)}/5`} />
-          </div>
-        </CardContent>
-      </Card>
+            <EvidenceRow
+              num="02" title="소요 시간"
+              value={`평균 ${minAvg.toFixed(0)}분`}
+              desc="응답자가 실제로 측정한 평균 통근 시간"
+            />
+            <EvidenceRow
+              num="03" title="불만족도"
+              value={`${satAvg.toFixed(1)}/5`}
+              desc={satAvg > 0 && satAvg < 3
+                ? "현재 교통수단 만족도가 낮아 개선 시급"
+                : "추가 응답 시 만족도 분포 추세 확인 필요"}
+            />
+            <EvidenceRow
+              num="04" title="이용 의향"
+              value={`${highIntentPct.toFixed(0)}%`}
+              desc={`응답자 중 ${highIntentPct.toFixed(0)}%가 급행 셔틀 도입 시 "꼭 쓰겠다" 또는 "쓸 것 같다"고 답변`}
+              highlight
+            />
+          </CardContent>
+        </Card>
+      )}
 
-      {/* 🚨 정책 결정자에게 보여줄 핵심 증거 */}
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            <span className="flex items-center gap-2">
-              <AlertTriangle size={16} className="text-rose-500" />
-              핵심 근거 (시청 제안용)
-            </span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-2.5">
-          <EvidenceRow
-            num="01"
-            title="수요"
-            value={`주 ${topPairsBidi[0]?.totalCount ?? 0}회`}
-            desc={`가장 인기 구간 (${topPairsBidi[0]?.fromLabel ?? "—"} ↔ ${topPairsBidi[0]?.toLabel ?? "—"})에서 매주 ${topPairsBidi[0]?.totalCount ?? 0}회 이동 발생`}
-          />
-          <EvidenceRow
-            num="02"
-            title="소요 시간"
-            value={`평균 ${minAvg.toFixed(0)}분`}
-            desc="현재 시민이 실제로 측정한 평균 통근 시간 — 직선거리 대비 과다"
-          />
-          <EvidenceRow
-            num="03"
-            title="불만족도"
-            value={`${satAvg.toFixed(1)}/5`}
-            desc={satAvg < 3
-              ? "현재 교통수단 만족도가 낮아 개선 시급"
-              : "추가 데이터 수집 시 만족도 분포 추세 확인 필요"}
-          />
-          <EvidenceRow
-            num="04"
-            title="이용 의향"
-            value={`${highIntentPct.toFixed(0)}%`}
-            desc={`응답자 중 ${highIntentPct.toFixed(0)}%가 급행 셔틀 도입 시 "꼭 쓰겠다" 또는 "쓸 것 같다"고 답함`}
-            highlight
-          />
-        </CardContent>
-      </Card>
-
-      {/* 인기 OD 페어 (양방향) */}
+      {/* 인기 OD 페어 */}
       <Card>
         <CardHeader>
           <CardTitle>
@@ -242,23 +274,27 @@ export default function AnalysisPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col gap-1.5">
-            {(Object.entries(modes) as [string, number][])
-              .filter(([, c]) => c > 0)
-              .sort((a, b) => b[1] - a[1])
-              .map(([m, count]) => {
-                const pct = (count / maxModeCount) * 100;
-                return (
-                  <div key={m} className="flex items-center gap-2 text-xs">
-                    <span className="w-20 shrink-0 font-semibold text-[var(--text-base)]">{m}</span>
-                    <div className="flex-1 h-2.5 rounded-full bg-[var(--bg-soft)] overflow-hidden">
-                      <div className="h-full rounded-full bg-[var(--accent)]" style={{ width: `${pct}%` }} />
+          {!hasData ? (
+            <p className="text-sm text-[var(--text-muted)] text-center py-6">데이터 부족</p>
+          ) : (
+            <div className="flex flex-col gap-1.5">
+              {(Object.entries(modes) as [string, number][])
+                .filter(([, c]) => c > 0)
+                .sort((a, b) => b[1] - a[1])
+                .map(([m, count]) => {
+                  const pct = (count / maxModeCount) * 100;
+                  return (
+                    <div key={m} className="flex items-center gap-2 text-xs">
+                      <span className="w-20 shrink-0 font-semibold text-[var(--text-base)]">{m}</span>
+                      <div className="flex-1 h-2.5 rounded-full bg-[var(--bg-soft)] overflow-hidden">
+                        <div className="h-full rounded-full bg-[var(--accent)]" style={{ width: `${pct}%` }} />
+                      </div>
+                      <span className="text-[var(--text-muted)] tabular-nums w-10 text-right">{count}</span>
                     </div>
-                    <span className="text-[var(--text-muted)] tabular-nums w-10 text-right">{count}</span>
-                  </div>
-                );
-              })}
-          </div>
+                  );
+                })}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -278,7 +314,6 @@ export default function AnalysisPage() {
         </CardContent>
       </Card>
 
-      {/* 방향별 상세 */}
       <details className="card rounded-2xl px-4 py-3">
         <summary className="text-sm font-semibold text-[var(--text-base)] cursor-pointer">
           방향별 상세 (Top 10)
@@ -294,11 +329,108 @@ export default function AnalysisPage() {
           ))}
         </div>
       </details>
+
+      {/* 산출 방식 모달 */}
+      {showFormula && <FormulaModal onClose={() => setShowFormula(false)} />}
     </div>
   );
 }
 
-// ── 보조 컴포넌트 ────────────────────────────────────────────────────
+// ── 산출 방식 설명 모달 ──────────────────────────────────────────────
+function FormulaModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-[90] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="card rounded-2xl p-5 max-w-md w-full max-h-[90vh] overflow-y-auto"
+      >
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-bold text-[var(--text-strong)]">필요성 점수 산출 방식</h2>
+          <button
+            onClick={onClose}
+            className="p-1 rounded-lg hover:bg-[var(--bg-soft)]"
+            aria-label="닫기"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <p className="text-xs text-[var(--text-muted)] leading-relaxed mb-4">
+          세 가지 데이터를 0~100점 척도로 각각 정규화한 후, 가중치를 곱해 평균낸 값입니다.
+          정책 결정자에게 가장 의미 있는 신호인 <strong>이용 의향</strong>에 가장 큰 가중치를 부여합니다.
+        </p>
+
+        <div className="flex flex-col gap-3 text-xs">
+          <FormulaRow
+            label="① 불만족도 (25%)"
+            formula="(5 − 평균 만족도) ÷ 4 × 100"
+            example="만족도 5점이면 0점, 1점이면 100점"
+            color="#f97316"
+          />
+          <FormulaRow
+            label="② 시간 부담 (25%)"
+            formula="min(평균 소요 시간, 30분) ÷ 30 × 100"
+            example="30분 이상이면 100점 (상한), 0분이면 0점"
+            color="#06b6d4"
+          />
+          <FormulaRow
+            label="③ 이용 의향 (50%)"
+            formula="(평균 의향 − 1) ÷ 4 × 100"
+            example="의향 5점이면 100점, 1점이면 0점"
+            color="#a855f7"
+          />
+        </div>
+
+        <div className="bg-[var(--accent-soft)] rounded-xl px-3 py-3 mt-4">
+          <p className="text-xs font-bold text-[var(--accent-text)] mb-1">최종 점수</p>
+          <p className="text-[11px] font-mono text-[var(--accent-text)] leading-relaxed">
+            점수 = ①×0.25 + ②×0.25 + ③×0.50
+          </p>
+        </div>
+
+        <div className="mt-4 text-[11px] text-[var(--text-muted)] leading-relaxed space-y-2">
+          <p>
+            <strong className="text-[var(--text-base)]">왜 의향이 50%인가?</strong>{" "}
+            현재 불편을 느낀다고 해서 모두가 급행을 사용하지는 않습니다. &ldquo;만들면 정말 쓸 것&rdquo; 이라는 의향이 가장 강력한 정책 결정 근거입니다.
+          </p>
+          <p>
+            <strong className="text-[var(--text-base)]">왜 시간은 30분이 상한?</strong>{" "}
+            동안구 셔틀의 합리적 이동 거리 (5~10km) 기준, 30분 이상 걸리면 명백한 개선 여지가 있다고 판단합니다.
+          </p>
+          <p>
+            <strong className="text-[var(--text-base)]">점수 해석</strong>
+          </p>
+          <ul className="ml-4 list-disc space-y-0.5">
+            <li>70 이상: 매우 높음 — 즉각 도입 검토 권장</li>
+            <li>50~69: 높음 — 추가 분석과 함께 검토</li>
+            <li>30~49: 보통 — 데이터 더 모은 후 재평가</li>
+            <li>30 미만: 낮음 — 현재 시스템으로 충분</li>
+          </ul>
+        </div>
+
+        <button
+          onClick={onClose}
+          className="mt-5 w-full px-4 py-2.5 rounded-xl bg-[var(--accent)] text-white text-sm font-semibold hover:opacity-90"
+        >
+          확인
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function FormulaRow({
+  label, formula, example, color,
+}: { label: string; formula: string; example: string; color: string }) {
+  return (
+    <div className="rounded-xl p-3 bg-[var(--bg-soft)] border-l-4" style={{ borderColor: color }}>
+      <p className="text-xs font-bold text-[var(--text-strong)]">{label}</p>
+      <p className="text-[11px] font-mono text-[var(--text-base)] mt-1">{formula}</p>
+      <p className="text-[10px] text-[var(--text-muted)] mt-1 italic">예: {example}</p>
+    </div>
+  );
+}
+
 function Stat({
   icon, label, value, accent,
 }: { icon: React.ReactNode; label: string; value: string; accent?: boolean }) {
@@ -333,22 +465,14 @@ function EvidenceRow({
   highlight?: boolean;
 }) {
   return (
-    <div
-      className={`rounded-xl px-3 py-2.5 flex items-start gap-3 ${
-        highlight ? "bg-[var(--accent-soft)]" : "bg-[var(--bg-soft)]"
-      }`}
-    >
+    <div className={`rounded-xl px-3 py-2.5 flex items-start gap-3 ${highlight ? "bg-[var(--accent-soft)]" : "bg-[var(--bg-soft)]"}`}>
       <span className={`text-[10px] font-mono font-bold ${highlight ? "text-[var(--accent-text)]" : "text-[var(--text-muted)]"} mt-0.5`}>
         {num}
       </span>
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline justify-between gap-2">
-          <p className={`text-xs font-bold ${highlight ? "text-[var(--accent-text)]" : "text-[var(--text-strong)]"}`}>
-            {title}
-          </p>
-          <p className={`text-base font-bold tabular-nums ${highlight ? "text-[var(--accent-text)]" : "text-[var(--text-strong)]"}`}>
-            {value}
-          </p>
+          <p className={`text-xs font-bold ${highlight ? "text-[var(--accent-text)]" : "text-[var(--text-strong)]"}`}>{title}</p>
+          <p className={`text-base font-bold tabular-nums ${highlight ? "text-[var(--accent-text)]" : "text-[var(--text-strong)]"}`}>{value}</p>
         </div>
         <p className={`text-[11px] mt-0.5 leading-relaxed ${highlight ? "text-[var(--accent-text)] opacity-80" : "text-[var(--text-muted)]"}`}>
           {desc}

@@ -102,7 +102,7 @@ export default function HomePage() {
       >
         <AlertCircle size={16} className="mt-0.5 shrink-0 text-[var(--accent)]" />
         <p>
-          이 사이트는 <strong>학생 동아리 비영리 프로젝트</strong>입니다.
+          이 사이트는 <strong>학생 비영리 프로젝트</strong>입니다.
           응답 데이터는 익명으로 분석되며 정책 제안 자료에만 사용됩니다.
         </p>
       </div>

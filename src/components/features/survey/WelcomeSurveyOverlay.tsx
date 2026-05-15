@@ -132,7 +132,7 @@ export function WelcomeSurveyOverlay() {
               평소 출퇴근 경로를<br />알려주세요
             </h1>
             <p className="text-sm text-[var(--text-muted)] leading-relaxed">
-              1분이면 끝납니다. 동안구민의 통근 데이터를 모아 안양시청에 급행 셔틀버스 노선을 제안하는 학생 동아리 프로젝트입니다.
+              1분이면 끝납니다. 동안구민의 통근 데이터를 모아 안양시청에 급행 셔틀버스 노선을 제안하는 학생 비영리 프로젝트입니다.
             </p>
           </div>
 
@@ -327,7 +327,7 @@ export function PlaceField({
     (grouped[p.category] ??= []).push(p);
   }
   const orderedCats: Array<keyof typeof CATEGORY_LABEL> = [
-    "subway", "academy", "residence", "office", "facility", "park", "outside", "other",
+    "subway", "academy", "residence", "office", "facility", "park", "other",
   ];
 
   return (

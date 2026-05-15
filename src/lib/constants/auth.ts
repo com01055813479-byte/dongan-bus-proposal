@@ -1,9 +1,9 @@
 /**
- * 설정 페이지의 "동아리원 접근" 비밀번호 게이트.
+ * 설정 페이지의 "어드민 접근" 비밀번호 게이트.
  *
  * 각 비밀번호가 일치하면 지정된 경로로 이동.
  * 비밀번호는 클라이언트 코드에 박혀 있어 마음만 먹으면 알아낼 수 있음.
- * 학교 동아리 프로젝트 수준의 보호.
+ * 학생 비영리 프로젝트 수준의 보호.
  */
 
 export interface GateRule {
@@ -18,7 +18,7 @@ export const GATE_RULES: GateRule[] = [
   {
     password:   "induckmathroad",
     redirectTo: "/admin",
-    label:      "동아리원 - 관리자 페이지",
+    label:      "어드민 - 관리자 페이지",
   },
   {
     password:   "eungyusmart",

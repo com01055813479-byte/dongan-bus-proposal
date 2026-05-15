@@ -25,8 +25,7 @@ function generateProposals(entries: ReturnType<typeof useCommutes>["entries"]) {
       const to = PLACE_MAP[p.toPlaceId];
       // 좌표 없으면 (직접입력) 제외
       if (!from?.lat || !to?.lat) return null;
-      // 양쪽 다 외부면 셔틀 대상 아님 — 제외
-      if (from.external && to.external) return null;
+      // (동안구 외부 거점은 더 이상 등록되어 있지 않음)
 
       const distKm = haversineKm(from.lat, from.lng!, to.lat, to.lng!);
       // 실측 평균이 있으면 그 값을, 없으면 휴리스틱
