@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import {
-  MapPinned,
   BarChart3,
   ChevronRight,
   Bus,
@@ -14,9 +13,8 @@ import { useCommutes } from "@/lib/hooks/useCommutes";
 import { aggregateRoutes } from "@/lib/algorithms/odAnalysis";
 
 const FEATURE_CARDS = [
-  { href: "/survey",   icon: MapPinned, title: "통근 설문 참여",     desc: "어디에서 어디로 자주 가시나요?" },
-  { href: "/analysis", icon: BarChart3, title: "수요 분석 보기",     desc: "수집된 통근 패턴 시각화" },
-  { href: "/settings", icon: Settings,  title: "설정",               desc: "테마, 데이터 관리" },
+  { href: "/analysis", icon: BarChart3, title: "수요 분석 보기", desc: "수집된 통근 패턴 시각화" },
+  { href: "/settings", icon: Settings,  title: "설정",           desc: "테마, 관리자 접근" },
 ];
 
 export default function HomePage() {
@@ -58,11 +56,7 @@ export default function HomePage() {
             <Stat label="언급된 노선" value={hydrated ? `${uniqueRoutes}` : "—"} accent />
           </div>
           <p className="text-[11px] text-[var(--text-muted)] mt-3 leading-relaxed">
-            아직 데이터가 부족하다면 {" "}
-            <Link href="/survey" className="text-[var(--accent-text)] font-semibold underline">
-              통근 설문
-            </Link>
-            에 참여해 주세요.
+            동안구민의 통근 혼잡 경험을 모으는 중입니다. 첫 방문 시 설문에 참여해 주신 모든 분께 감사드립니다.
           </p>
         </CardContent>
       </Card>

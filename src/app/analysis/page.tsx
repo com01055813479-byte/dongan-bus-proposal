@@ -80,7 +80,7 @@ export default function AnalysisPage() {
           </div>
           {!hasData && hydrated && (
             <p className="text-[11px] text-[var(--text-muted)] mt-3 leading-relaxed text-center">
-              아직 응답 데이터가 없습니다. 통근 설문에 참여해 주세요.
+              아직 응답 데이터가 없습니다.
             </p>
           )}
         </CardContent>

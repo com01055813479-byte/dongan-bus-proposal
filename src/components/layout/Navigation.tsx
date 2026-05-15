@@ -1,4 +1,4 @@
-import { LayoutDashboard, MapPinned, BarChart3, Settings } from "lucide-react";
+import { LayoutDashboard, BarChart3, Settings } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
 export interface NavItem {
@@ -10,7 +10,8 @@ export interface NavItem {
 
 /**
  * 동안구 급행 버스 제안 사이트 네비게이션.
- * 동아리 전용 데이터 입력은 메뉴에 노출하지 않고 URL 로만 접근.
+ * 설문은 첫 방문 시 오버레이로만 받음 (한 사람 1회 제한).
+ * 관리자 페이지는 메뉴에 노출하지 않고 URL 로만 접근.
  */
 export const NAV_ITEMS: NavItem[] = [
   {
@@ -18,12 +19,6 @@ export const NAV_ITEMS: NavItem[] = [
     label: "홈",
     icon: LayoutDashboard,
     description: "프로젝트 소개와 현재 진행 상황",
-  },
-  {
-    href: "/survey",
-    label: "통근 설문",
-    icon: MapPinned,
-    description: "어디에서 어디로 자주 가시나요?",
   },
   {
     href: "/analysis",
@@ -35,6 +30,6 @@ export const NAV_ITEMS: NavItem[] = [
     href: "/settings",
     label: "설정",
     icon: Settings,
-    description: "테마, 데이터 관리",
+    description: "테마, 관리자 접근",
   },
 ];
