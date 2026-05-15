@@ -83,8 +83,8 @@ export function timeBandDistribution(entries: CommuteEntry[]): Record<TimeBand, 
 /** 교통수단별 응답 수 합계 */
 export function transportModeDistribution(entries: CommuteEntry[]): Record<TransportMode, number> {
   const out: Record<TransportMode, number> = {
-    "마을버스": 0, "시내버스": 0, "지하철": 0, "도보": 0,
-    "자전거": 0, "자가용": 0, "택시": 0, "기타": 0,
+    "버스": 0, "지하철": 0, "도보": 0, "자전거": 0,
+    "자동차": 0, "헬리콥터": 0, "UFO": 0, "기타": 0,
   };
   for (const e of entries) out[e.currentMode] += e.weeklyCount;
   return out;

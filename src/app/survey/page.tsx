@@ -11,20 +11,34 @@ import { cn } from "@/lib/utils/cn";
 
 const TIME_BANDS: TimeBand[] = ["출근(06~09)", "퇴근(17~21)", "기타 시간"];
 const MODES: TransportMode[] = [
-  "마을버스", "시내버스", "지하철", "도보", "자전거", "자가용", "택시", "기타",
+  "버스", "지하철", "도보", "자전거",
+  "자동차", "헬리콥터", "UFO", "기타",
 ];
 const CONGESTION_LABELS = [
   "한산함", "여유 있음", "보통 (서서 가도 편함)", "만원 (불편함)", "극도로 만원 (못 타기도)",
 ];
 
+function routePlaceholder(mode: TransportMode): string {
+  switch (mode) {
+    case "버스":      return "예: 1500번, 마을버스 02 (인덕원→강남)";
+    case "지하철":    return "예: 4호선 인덕원→평촌";
+    case "도보":      return "예: 호계동→평촌역";
+    case "자전거":    return "예: 호계동→평촌학원가";
+    case "자동차":    return "예: 호계동→강남 출퇴근";
+    case "헬리콥터":  return "🚁 어디로? (예: 호계동 옥상→강남 빌딩)";
+    case "UFO":       return "👽 외계인 픽업 노선...?";
+    case "기타":      return "이용하는 노선/구간";
+  }
+}
+
 export default function SurveyPage() {
   const { add } = useCommutes();
 
+  const [mode, setMode] = useState<TransportMode>("버스");
   const [routeText, setRouteText] = useState("");
   const [timeBand, setTimeBand] = useState<TimeBand>("출근(06~09)");
   const [congestion, setCongestion] = useState<1 | 2 | 3 | 4 | 5>(3);
   const [weeklyCount, setWeeklyCount] = useState(5);
-  const [mode, setMode] = useState<TransportMode>("마을버스");
   const [currentMinutes, setCurrentMinutes] = useState(20);
   const [satisfaction, setSatisfaction] = useState<1 | 2 | 3 | 4 | 5>(3);
   const [expressIntent, setExpressIntent] = useState<1 | 2 | 3 | 4 | 5>(4);
@@ -45,7 +59,7 @@ export default function SurveyPage() {
         satisfaction, expressIntent,
         note: note || undefined,
       });
-      try { localStorage.setItem("survey-completed-v5", "1"); } catch {}
+      try { localStorage.setItem("survey-completed-v6", "1"); } catch {}
       setSubmitted(true);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
@@ -108,19 +122,42 @@ export default function SurveyPage() {
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <Card>
-          <CardHeader><CardTitle>자주 이용하는 버스 노선 또는 구간</CardTitle></CardHeader>
+          <CardHeader><CardTitle>현재 사용하는 교통수단</CardTitle></CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {MODES.map((m) => (
+                <button key={m} type="button" onClick={() => setMode(m)}
+                  className={cn(
+                    "px-3 py-2 rounded-xl text-xs font-semibold transition-colors",
+                    mode === m
+                      ? "bg-[var(--accent)] text-white"
+                      : "bg-[var(--bg-soft)] hover:bg-[var(--border)] text-[var(--text-base)]"
+                  )}>
+                  {m}
+                </button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>{mode === "버스" ? "주로 혼잡한 버스 번호 / 노선" : "자주 이용하는 노선 또는 구간"}</CardTitle>
+          </CardHeader>
           <CardContent>
             <input
               type="text"
               value={routeText}
               onChange={(e) => setRouteText(e.target.value)}
-              placeholder="예: 1500번 (인덕원→강남), 마을버스 02 (평촌학원가→호계동)"
+              placeholder={routePlaceholder(mode)}
               maxLength={80}
               className="input rounded-xl px-3 py-2.5 text-sm w-full"
               autoComplete="off"
             />
             <p className="text-[11px] text-[var(--text-muted)] mt-2">
-              노선 번호 / 구간 / 정류장 — 떠오르는 대로 자유롭게
+              {mode === "버스"
+                ? "버스 번호 + 구간 적어주세요 (1500번, 마을버스 02 등)"
+                : "노선 번호 / 구간 / 정류장 — 떠오르는 대로 자유롭게"}
             </p>
           </CardContent>
         </Card>
@@ -164,25 +201,6 @@ export default function SurveyPage() {
             <input type="range" min={1} max={14} value={weeklyCount}
               onChange={(e) => setWeeklyCount(parseInt(e.target.value, 10))}
               className="w-full accent-[var(--accent)]" />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader><CardTitle>현재 사용하는 교통수단</CardTitle></CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {MODES.map((m) => (
-                <button key={m} type="button" onClick={() => setMode(m)}
-                  className={cn(
-                    "px-3 py-2 rounded-xl text-xs font-semibold transition-colors",
-                    mode === m
-                      ? "bg-[var(--accent)] text-white"
-                      : "bg-[var(--bg-soft)] hover:bg-[var(--border)] text-[var(--text-base)]"
-                  )}>
-                  {m}
-                </button>
-              ))}
-            </div>
           </CardContent>
         </Card>
 
