@@ -1,7 +1,6 @@
 /**
- * 시드 샘플 통근 데이터.
- * 사이트 첫 방문 시에도 분석/제안 페이지가 비어 보이지 않도록 가짜 데이터를 깔아둠.
- * 실제 사용자 응답이 누적되면 함께 분석됨.
+ * 시드 샘플 통근 데이터 — 출퇴근 시간 중심.
+ * 첫 방문 시에도 분석/제안 페이지가 비어 보이지 않도록 가짜 데이터를 깔아둠.
  */
 
 import type { CommuteEntry } from "@/lib/types";
@@ -9,7 +8,6 @@ import type { CommuteEntry } from "@/lib/types";
 const now = new Date();
 const iso = (offset: number) => new Date(now.getTime() - offset * 3600_000).toISOString();
 
-// 빠른 작성용 헬퍼
 let _id = 0;
 function E(
   from: string,
@@ -18,72 +16,67 @@ function E(
   weeklyCount: number,
   currentMode: CommuteEntry["currentMode"],
   satisfaction: CommuteEntry["satisfaction"],
-  hourOffset = _id,
+  currentMinutes: number,
+  expressIntent: 1 | 2 | 3 | 4 | 5,
 ): CommuteEntry {
   return {
-    id: `seed-${_id++}`,
+    id: `seed-${_id}`,
     fromPlaceId: from,
     toPlaceId: to,
     timeBand,
     weeklyCount,
     currentMode,
     satisfaction,
-    createdAt: iso(hourOffset),
+    currentMinutes,
+    expressIntent,
+    createdAt: iso(_id++),
   };
 }
 
-/**
- * 가상의 시드 데이터 — 동안구민의 흔한 통근/통학 패턴 반영.
- */
 export const SAMPLE_COMMUTES: CommuteEntry[] = [
-  // 학생 등하원 — 학원가 ↔ 주거지 / 지하철역
-  E("hogye", "hagwon-main", "오후(14~17)", 5, "마을버스", 2),
-  E("hogye", "hagwon-main", "오후(14~17)", 5, "마을버스", 2),
-  E("hagwon-main", "hogye", "야간(20~24)", 5, "마을버스", 1),
-  E("hagwon-main", "hogye", "야간(20~24)", 5, "마을버스", 2),
-  E("hagwon-main", "beomgye", "야간(20~24)", 4, "도보", 2),
-  E("hagwon-main", "beomgye", "야간(20~24)", 3, "마을버스", 1),
-  E("hagwon-back", "beomgye", "야간(20~24)", 4, "마을버스", 2),
-  E("guiin-school", "hagwon-main", "오후(14~17)", 5, "도보", 3),
-  E("biSan", "hagwon-main", "오후(14~17)", 3, "시내버스", 2),
+  // ── 출근 (동안구 → 동안구 내 4호선역) ─────────────────────────────
+  E("biSan",     "indeokwon", "출근(06~09)", 5, "마을버스", 2, 22, 5),
+  E("biSan",     "indeokwon", "출근(06~09)", 5, "마을버스", 1, 25, 5),
+  E("biSan",     "beomgye",   "출근(06~09)", 4, "마을버스", 2, 18, 4),
+  E("buheung",   "indeokwon", "출근(06~09)", 5, "도보",     3, 15, 3),
+  E("dalan",     "pyeongchon","출근(06~09)", 5, "마을버스", 2, 17, 4),
+  E("hogye",     "pyeongchon","출근(06~09)", 5, "도보",     3, 12, 3),
+  E("pyeongchon-shintosi", "pyeongchon", "출근(06~09)", 5, "도보", 4, 8, 2),
+  E("pyeongchon-shintosi", "beomgye",    "출근(06~09)", 3, "도보", 3, 10, 3),
+  E("gwanyang",  "indeokwon", "출근(06~09)", 5, "도보",     4, 6, 2),
+  E("shinchon",  "beomgye",   "출근(06~09)", 5, "도보",     4, 8, 2),
 
-  // 출근 — 주거지 → 4호선역
-  E("biSan", "indeokwon", "출근(07~09)", 5, "마을버스", 2),
-  E("biSan", "indeokwon", "출근(07~09)", 5, "마을버스", 1),
-  E("biSan", "beomgye", "출근(07~09)", 4, "마을버스", 2),
-  E("hogye", "pyeongchon", "출근(07~09)", 5, "마을버스", 2),
-  E("hogye", "pyeongchon", "출근(07~09)", 5, "도보", 3),
-  E("pyeongchon-shintosi", "pyeongchon", "출근(07~09)", 5, "도보", 4),
-  E("pyeongchon-shintosi", "beomgye", "출근(07~09)", 3, "도보", 3),
+  // ── 출근 (동안구 → 동안구 외부 — 4호선 환승 전 셔틀 수요) ────────
+  E("biSan",                "gangnam",    "출근(06~09)", 5, "마을버스", 1, 65, 5),
+  E("hogye",                "gangnam",    "출근(06~09)", 5, "마을버스", 2, 60, 5),
+  E("pyeongchon-shintosi", "gangnam",    "출근(06~09)", 5, "지하철",   3, 55, 4),
+  E("gwanyang",             "sadang",     "출근(06~09)", 5, "지하철",   3, 40, 4),
+  E("biSan",                "sadang",     "출근(06~09)", 5, "마을버스", 2, 50, 5),
+  E("hogye",                "yangjae",    "출근(06~09)", 4, "마을버스", 2, 55, 5),
+  E("pyeongan",             "city-hall",  "출근(06~09)", 5, "지하철",   3, 70, 4),
+  E("hogye",                "pangyo",     "출근(06~09)", 4, "시내버스", 2, 50, 4),
+  E("biSan",                "anyang-station", "출근(06~09)", 4, "마을버스", 2, 20, 4),
+  E("buheung",              "yeouido",    "출근(06~09)", 5, "시내버스", 2, 75, 4),
 
-  // 퇴근 — 역 → 주거지
-  E("indeokwon", "biSan", "퇴근(17~20)", 5, "마을버스", 2),
-  E("indeokwon", "biSan", "퇴근(17~20)", 5, "마을버스", 1),
-  E("beomgye", "biSan", "퇴근(17~20)", 4, "마을버스", 2),
-  E("pyeongchon", "hogye", "퇴근(17~20)", 5, "마을버스", 2),
-  E("pyeongchon", "hogye", "퇴근(17~20)", 4, "도보", 3),
+  // ── 퇴근 (역방향) ──────────────────────────────────────────────────
+  E("indeokwon", "biSan",     "퇴근(17~21)", 5, "마을버스", 2, 22, 5),
+  E("beomgye",   "biSan",     "퇴근(17~21)", 4, "마을버스", 2, 18, 4),
+  E("indeokwon", "buheung",   "퇴근(17~21)", 5, "도보",     3, 15, 3),
+  E("pyeongchon","hogye",     "퇴근(17~21)", 5, "마을버스", 2, 13, 4),
+  E("pyeongchon","dalan",     "퇴근(17~21)", 4, "마을버스", 2, 17, 4),
+  E("gangnam",   "biSan",     "퇴근(17~21)", 5, "마을버스", 1, 70, 5),
+  E("gangnam",   "hogye",     "퇴근(17~21)", 5, "마을버스", 2, 65, 5),
+  E("sadang",    "biSan",     "퇴근(17~21)", 5, "마을버스", 2, 55, 5),
+  E("city-hall", "pyeongan",  "퇴근(17~21)", 5, "지하철",   3, 75, 4),
 
-  // 출퇴근 — 안양종합운동장
-  E("anyang-stadium", "indeokwon", "출근(07~09)", 5, "시내버스", 2),
-  E("anyang-stadium", "beomgye", "퇴근(17~20)", 3, "시내버스", 2),
-
-  // 시청 / 관공서 업무
-  E("pyeongchon-shintosi", "anyang-cityhall", "오전(09~12)", 1, "도보", 4),
-  E("hogye", "anyang-cityhall", "오전(09~12)", 1, "마을버스", 3),
-  E("biSan", "anyang-cityhall", "오전(09~12)", 1, "마을버스", 2),
-
-  // 쇼핑 / 여가
-  E("hogye", "beomgye-shopping", "오후(14~17)", 2, "마을버스", 3),
-  E("pyeongchon-shintosi", "beomgye-shopping", "오후(14~17)", 2, "도보", 4),
-  E("biSan", "beomgye-shopping", "오후(14~17)", 1, "시내버스", 3),
-  E("hogye", "central-park", "오전(09~12)", 1, "도보", 4),
-
-  // 학원가 → 평촌역/인덕원 (지하철 환승)
-  E("hagwon-main", "pyeongchon", "야간(20~24)", 4, "마을버스", 2),
-  E("hagwon-main", "indeokwon", "야간(20~24)", 3, "마을버스", 1),
-
-  // 평촌역 → 학원가 (등원)
-  E("pyeongchon", "hagwon-main", "오후(14~17)", 4, "마을버스", 2),
-  E("beomgye", "hagwon-main", "오후(14~17)", 4, "마을버스", 2),
-  E("indeokwon", "hagwon-main", "오후(14~17)", 2, "마을버스", 1),
+  // ── 학생 등하원 (기타 시간) ─────────────────────────────────────────
+  E("hogye",      "hagwon-main", "기타 시간", 5, "마을버스", 2, 12, 4),
+  E("hogye",      "hagwon-main", "기타 시간", 5, "마을버스", 2, 14, 4),
+  E("hagwon-main","hogye",       "기타 시간", 5, "마을버스", 1, 15, 5),
+  E("hagwon-main","beomgye",     "기타 시간", 4, "도보",     2, 10, 3),
+  E("hagwon-back","beomgye",     "기타 시간", 4, "마을버스", 2, 13, 4),
+  E("guiin-school","hagwon-main","기타 시간", 5, "도보",     3, 8, 3),
+  E("biSan",      "hagwon-main", "기타 시간", 3, "시내버스", 2, 20, 4),
+  E("pyeongchon", "hagwon-main", "기타 시간", 4, "마을버스", 2, 12, 4),
+  E("beomgye",    "hagwon-main", "기타 시간", 4, "마을버스", 2, 14, 4),
 ];

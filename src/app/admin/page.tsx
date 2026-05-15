@@ -5,7 +5,7 @@ import { Lock, Download, Trash2, Database, Trash, RefreshCw, Cloud, HardDrive } 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { useCommutes } from "@/lib/hooks/useCommutes";
-import { PLACE_MAP } from "@/lib/constants/places";
+import { placeLabel } from "@/lib/constants/places";
 
 export default function AdminPage() {
   const {
@@ -26,18 +26,23 @@ export default function AdminPage() {
 
   function exportCSV() {
     const header = [
-      "id", "createdAt", "fromPlaceId", "fromName",
-      "toPlaceId", "toName", "timeBand", "weeklyCount",
-      "currentMode", "satisfaction", "note",
+      "id", "createdAt",
+      "fromPlaceId", "fromLabel",
+      "toPlaceId", "toLabel",
+      "timeBand", "weeklyCount", "currentMode",
+      "currentMinutes", "satisfaction", "expressIntent",
+      "note",
     ].join(",");
-    // 시드 제외, 실제 사용자 응답만 CSV
     const rows = serverEntries.map((e) => {
-      const fromName = PLACE_MAP[e.fromPlaceId]?.name ?? "";
-      const toName   = PLACE_MAP[e.toPlaceId]?.name ?? "";
+      const fromName = placeLabel(e.fromPlaceId, e.fromCustomText);
+      const toName   = placeLabel(e.toPlaceId, e.toCustomText);
       return [
-        e.id, e.createdAt, e.fromPlaceId, `"${fromName}"`,
-        e.toPlaceId, `"${toName}"`, `"${e.timeBand}"`, e.weeklyCount,
-        `"${e.currentMode}"`, e.satisfaction, `"${(e.note ?? "").replace(/"/g, '""')}"`,
+        e.id, e.createdAt,
+        e.fromPlaceId, `"${fromName}"`,
+        e.toPlaceId, `"${toName}"`,
+        `"${e.timeBand}"`, e.weeklyCount, `"${e.currentMode}"`,
+        e.currentMinutes ?? "", e.satisfaction, e.expressIntent ?? "",
+        `"${(e.note ?? "").replace(/"/g, '""')}"`,
       ].join(",");
     });
     const csv = "﻿" + [header, ...rows].join("\n");
@@ -202,10 +207,15 @@ export default function AdminPage() {
                 >
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-[var(--text-strong)] truncate">
-                      {PLACE_MAP[e.fromPlaceId]?.name} → {PLACE_MAP[e.toPlaceId]?.name}
+                      {placeLabel(e.fromPlaceId, e.fromCustomText)} → {placeLabel(e.toPlaceId, e.toCustomText)}
                     </p>
                     <p className="text-[var(--text-muted)] mt-0.5">
-                      {e.timeBand} · 주{e.weeklyCount}회 · {e.currentMode} · 만족도 {e.satisfaction}/5
+                      {e.timeBand} · 주{e.weeklyCount}회 · {e.currentMode}
+                      {e.currentMinutes !== undefined && ` · ${e.currentMinutes}분`}
+                    </p>
+                    <p className="text-[var(--text-muted)] mt-0.5">
+                      만족도 {e.satisfaction}/5
+                      {e.expressIntent !== undefined && ` · 급행 의향 ${e.expressIntent}/5`}
                     </p>
                     {e.note && (
                       <p className="text-[10px] text-[var(--text-muted)] mt-1 italic">&ldquo;{e.note}&rdquo;</p>
