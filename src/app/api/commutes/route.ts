@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { commutesStore } from "@/lib/server/commutesDb";
+import { normalizeText } from "@/lib/types";
 import type { CommuteEntry, TimeBand, TransportMode } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -26,14 +27,15 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    // 필수 필드 검증
-    if (typeof body.fromPlaceId !== "string" || !body.fromPlaceId) {
-      return NextResponse.json({ error: "fromPlaceId 누락" }, { status: 400 });
+    const fromText = typeof body.fromText === "string" ? normalizeText(body.fromText) : "";
+    const toText   = typeof body.toText === "string"   ? normalizeText(body.toText)   : "";
+
+    if (!fromText) return NextResponse.json({ error: "출발지를 입력해 주세요" }, { status: 400 });
+    if (!toText)   return NextResponse.json({ error: "도착지를 입력해 주세요" }, { status: 400 });
+    if (fromText.length > 80 || toText.length > 80) {
+      return NextResponse.json({ error: "출발/도착 텍스트는 80자 이하" }, { status: 400 });
     }
-    if (typeof body.toPlaceId !== "string" || !body.toPlaceId) {
-      return NextResponse.json({ error: "toPlaceId 누락" }, { status: 400 });
-    }
-    if (body.fromPlaceId === body.toPlaceId && body.fromPlaceId !== "other") {
+    if (fromText === toText) {
       return NextResponse.json({ error: "출발지·도착지가 같습니다" }, { status: 400 });
     }
     if (!TIME_BANDS.includes(body.timeBand)) {
@@ -48,14 +50,6 @@ export async function POST(req: Request) {
     if (typeof body.satisfaction !== "number" || body.satisfaction < 1 || body.satisfaction > 5) {
       return NextResponse.json({ error: "satisfaction 범위 오류" }, { status: 400 });
     }
-    // "기타" 선택 시 직접 입력 텍스트 필수
-    if (body.fromPlaceId === "other" && !(typeof body.fromCustomText === "string" && body.fromCustomText.trim())) {
-      return NextResponse.json({ error: "출발지 직접 입력 필요" }, { status: 400 });
-    }
-    if (body.toPlaceId === "other" && !(typeof body.toCustomText === "string" && body.toCustomText.trim())) {
-      return NextResponse.json({ error: "도착지 직접 입력 필요" }, { status: 400 });
-    }
-    // 선택 필드 검증
     if (
       body.currentMinutes !== undefined &&
       (typeof body.currentMinutes !== "number" || body.currentMinutes < 0 || body.currentMinutes > 240)
@@ -71,11 +65,9 @@ export async function POST(req: Request) {
 
     const entry: CommuteEntry = {
       id: crypto.randomUUID(),
-      fromPlaceId: body.fromPlaceId,
-      fromCustomText: body.fromPlaceId === "other" ? String(body.fromCustomText).slice(0, 80) : undefined,
-      toPlaceId: body.toPlaceId,
-      toCustomText: body.toPlaceId === "other" ? String(body.toCustomText).slice(0, 80) : undefined,
-      timeBand:    body.timeBand,
+      fromText,
+      toText,
+      timeBand: body.timeBand,
       weeklyCount: body.weeklyCount,
       currentMode: body.currentMode,
       currentMinutes: typeof body.currentMinutes === "number" ? body.currentMinutes : undefined,

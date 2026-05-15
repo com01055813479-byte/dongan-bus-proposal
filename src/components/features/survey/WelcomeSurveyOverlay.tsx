@@ -2,19 +2,22 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Bus, ArrowRight, Star, CheckCircle2, Pencil } from "lucide-react";
+import { Bus, ArrowRight, Star, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { PLACES, CATEGORY_LABEL, type Place } from "@/lib/constants/places";
+import { PLACES } from "@/lib/constants/places";
 import type { TimeBand, TransportMode } from "@/lib/types";
 import { cn } from "@/lib/utils/cn";
 
-const COMPLETED_KEY = "survey-completed-v2"; // 폼 개편으로 v1 → v2
+const COMPLETED_KEY = "survey-completed-v3"; // 폼 개편으로 v2 → v3
 const BYPASS_PATHS = ["/admin", "/settings", "/games"];
 
 const TIME_BANDS: TimeBand[] = ["출근(06~09)", "퇴근(17~21)", "기타 시간"];
 const MODES: TransportMode[] = [
   "마을버스", "시내버스", "지하철", "도보", "자전거", "자가용", "택시", "기타",
 ];
+
+// 자동완성 힌트용 — 흔한 거점 이름 목록
+const PLACE_SUGGESTIONS = PLACES.filter((p) => p.id !== "other").map((p) => p.name);
 
 export function WelcomeSurveyOverlay() {
   const pathname = usePathname();
@@ -24,11 +27,8 @@ export function WelcomeSurveyOverlay() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // ── 폼 상태 ────────────────────────────────────────────────────────
-  const [fromId, setFromId] = useState("");
-  const [toId, setToId] = useState("");
-  const [fromCustom, setFromCustom] = useState("");
-  const [toCustom, setToCustom] = useState("");
+  const [fromText, setFromText] = useState("");
+  const [toText, setToText] = useState("");
   const [timeBand, setTimeBand] = useState<TimeBand>("출근(06~09)");
   const [weeklyCount, setWeeklyCount] = useState(5);
   const [mode, setMode] = useState<TransportMode>("마을버스");
@@ -55,14 +55,11 @@ export function WelcomeSurveyOverlay() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!fromId) return setError("출발지를 선택해 주세요");
-    if (!toId) return setError("도착지를 선택해 주세요");
-    if (fromId === "other" && !fromCustom.trim()) return setError("출발지를 직접 입력해 주세요");
-    if (toId === "other" && !toCustom.trim()) return setError("도착지를 직접 입력해 주세요");
-    // 같은 거점 검사 (직접입력의 경우 텍스트도 비교)
-    const fromKey = fromId === "other" ? `other:${fromCustom.trim()}` : fromId;
-    const toKey   = toId === "other" ? `other:${toCustom.trim()}` : toId;
-    if (fromKey === toKey) return setError("출발지와 도착지가 같습니다");
+    const fromTrim = fromText.trim();
+    const toTrim = toText.trim();
+    if (!fromTrim) return setError("출발지를 입력해 주세요");
+    if (!toTrim) return setError("도착지를 입력해 주세요");
+    if (fromTrim === toTrim) return setError("출발지와 도착지가 같습니다");
 
     setSubmitting(true);
     try {
@@ -70,10 +67,8 @@ export function WelcomeSurveyOverlay() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          fromPlaceId: fromId,
-          fromCustomText: fromId === "other" ? fromCustom.trim() : undefined,
-          toPlaceId: toId,
-          toCustomText: toId === "other" ? toCustom.trim() : undefined,
+          fromText: fromTrim,
+          toText: toTrim,
           timeBand,
           weeklyCount,
           currentMode: mode,
@@ -122,7 +117,6 @@ export function WelcomeSurveyOverlay() {
     <div className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-md overflow-y-auto">
       <div className="min-h-screen flex items-start justify-center p-4 py-8">
         <div className="card rounded-3xl p-6 max-w-md w-full flex flex-col gap-5">
-          {/* 헤더 */}
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2 text-[var(--accent-text)] text-xs font-semibold">
               <Bus size={14} />
@@ -136,23 +130,39 @@ export function WelcomeSurveyOverlay() {
             </p>
           </div>
 
+          {/* 자동완성용 datalist */}
+          <datalist id="place-suggestions">
+            {PLACE_SUGGESTIONS.map((name) => (
+              <option key={name} value={name} />
+            ))}
+          </datalist>
+
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <PlaceField
-              label="출발지"
-              value={fromId}
-              onChange={setFromId}
-              excludeId={toId}
-              customText={fromCustom}
-              onCustomChange={setFromCustom}
-            />
-            <PlaceField
-              label="도착지"
-              value={toId}
-              onChange={setToId}
-              excludeId={fromId}
-              customText={toCustom}
-              onCustomChange={setToCustom}
-            />
+            <FormBlock label="출발지">
+              <input
+                type="text"
+                value={fromText}
+                onChange={(e) => setFromText(e.target.value)}
+                placeholder="예: 비산동, 평촌역, 호계동 ○○아파트"
+                list="place-suggestions"
+                maxLength={80}
+                className="input rounded-lg px-3 py-2 text-sm w-full"
+                autoComplete="off"
+              />
+            </FormBlock>
+
+            <FormBlock label="도착지">
+              <input
+                type="text"
+                value={toText}
+                onChange={(e) => setToText(e.target.value)}
+                placeholder="예: 강남역, 평촌학원가, 안양시청"
+                list="place-suggestions"
+                maxLength={80}
+                className="input rounded-lg px-3 py-2 text-sm w-full"
+                autoComplete="off"
+              />
+            </FormBlock>
 
             <FormBlock label="이 경로의 주된 이동 시간">
               <div className="grid grid-cols-3 gap-1.5">
@@ -272,7 +282,6 @@ export function WelcomeSurveyOverlay() {
   );
 }
 
-// ─────────────── 공통: 형식별 컴포넌트 ──────────────────────────────
 function FormBlock({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1.5">
@@ -288,12 +297,7 @@ function StarRow({
   return (
     <div className="flex items-center justify-center gap-1">
       {[1, 2, 3, 4, 5].map((n) => (
-        <button
-          key={n}
-          type="button"
-          onClick={() => onChange(n as 1 | 2 | 3 | 4 | 5)}
-          aria-label={`${n}점`}
-        >
+        <button key={n} type="button" onClick={() => onChange(n as 1 | 2 | 3 | 4 | 5)} aria-label={`${n}점`}>
           <Star
             size={24}
             className={cn(
@@ -305,64 +309,5 @@ function StarRow({
         </button>
       ))}
     </div>
-  );
-}
-
-/**
- * 거점 선택 — select(카테고리별 그룹) + "기타" 선택 시 자유 입력.
- */
-export function PlaceField({
-  label, value, onChange, excludeId, customText, onCustomChange,
-}: {
-  label: string;
-  value: string;
-  onChange: (id: string) => void;
-  excludeId?: string;
-  customText: string;
-  onCustomChange: (text: string) => void;
-}) {
-  const grouped: Record<string, Place[]> = {};
-  for (const p of PLACES) {
-    if (p.id === excludeId) continue;
-    (grouped[p.category] ??= []).push(p);
-  }
-  const orderedCats: Array<keyof typeof CATEGORY_LABEL> = [
-    "subway", "academy", "residence", "office", "facility", "park", "other",
-  ];
-
-  return (
-    <FormBlock label={label}>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="input rounded-lg px-3 py-2 text-sm w-full"
-      >
-        <option value="">— 선택 —</option>
-        {orderedCats.map((cat) => {
-          const ps = grouped[cat];
-          if (!ps?.length) return null;
-          return (
-            <optgroup key={cat} label={CATEGORY_LABEL[cat].label}>
-              {ps.map((p) => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </optgroup>
-          );
-        })}
-      </select>
-      {value === "other" && (
-        <div className="flex items-center gap-1.5 mt-1">
-          <Pencil size={12} className="text-[var(--text-muted)] shrink-0 ml-1" />
-          <input
-            type="text"
-            value={customText}
-            onChange={(e) => onCustomChange(e.target.value)}
-            placeholder="장소명을 직접 입력 (예: ○○동 ○○아파트)"
-            className="input rounded-lg px-3 py-2 text-sm w-full"
-            maxLength={80}
-          />
-        </div>
-      )}
-    </FormBlock>
   );
 }

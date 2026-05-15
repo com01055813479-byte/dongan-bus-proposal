@@ -159,7 +159,7 @@ export default function AnalysisPage() {
             <EvidenceRow
               num="01" title="수요"
               value={`주 ${topPairsBidi[0]?.totalCount ?? 0}회`}
-              desc={`가장 인기 구간 (${topPairsBidi[0]?.fromLabel ?? "—"} ↔ ${topPairsBidi[0]?.toLabel ?? "—"})에서 매주 ${topPairsBidi[0]?.totalCount ?? 0}회 이동 발생`}
+              desc={`가장 인기 구간 (${topPairsBidi[0]?.fromText ?? "—"} ↔ ${topPairsBidi[0]?.toText ?? "—"})에서 매주 ${topPairsBidi[0]?.totalCount ?? 0}회 이동 발생`}
             />
             <EvidenceRow
               num="02" title="소요 시간"
@@ -201,11 +201,11 @@ export default function AnalysisPage() {
               {topPairsBidi.map((p, i) => {
                 const widthPct = (p.totalCount / maxPairCount) * 100;
                 return (
-                  <div key={`${p.fromPlaceId}|${p.toPlaceId}|${i}`} className="flex flex-col gap-1">
+                  <div key={`${p.fromText}|${p.toText}|${i}`} className="flex flex-col gap-1">
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-[var(--text-muted)] font-mono w-5 shrink-0">{i + 1}.</span>
                       <span className="flex-1 text-[13px] text-[var(--text-strong)] font-semibold truncate">
-                        {p.fromLabel} ↔ {p.toLabel}
+                        {p.fromText} ↔ {p.toText}
                       </span>
                       <span className="text-[var(--text-muted)] tabular-nums">{p.totalCount}회/주</span>
                     </div>
@@ -320,9 +320,9 @@ export default function AnalysisPage() {
         </summary>
         <div className="mt-3 flex flex-col gap-1.5 text-xs">
           {topPairsDirected.map((p, i) => (
-            <div key={`${p.fromPlaceId}|${p.toPlaceId}|${i}`} className="flex items-center justify-between">
+            <div key={`${p.fromText}|${p.toText}|${i}`} className="flex items-center justify-between">
               <span className="text-[var(--text-base)]">
-                {i + 1}. {p.fromLabel} → {p.toLabel}
+                {i + 1}. {p.fromText} → {p.toText}
               </span>
               <span className="text-[var(--text-muted)] tabular-nums">{p.totalCount}회/주</span>
             </div>

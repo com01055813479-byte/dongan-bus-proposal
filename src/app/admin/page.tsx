@@ -5,7 +5,6 @@ import { Lock, Download, Trash2, Database, Trash, RefreshCw, Cloud, HardDrive } 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { useCommutes } from "@/lib/hooks/useCommutes";
-import { placeLabel } from "@/lib/constants/places";
 
 export default function AdminPage() {
   const {
@@ -27,19 +26,16 @@ export default function AdminPage() {
   function exportCSV() {
     const header = [
       "id", "createdAt",
-      "fromPlaceId", "fromLabel",
-      "toPlaceId", "toLabel",
+      "fromText", "toText",
       "timeBand", "weeklyCount", "currentMode",
       "currentMinutes", "satisfaction", "expressIntent",
       "note",
     ].join(",");
     const rows = entries.map((e) => {
-      const fromName = placeLabel(e.fromPlaceId, e.fromCustomText);
-      const toName   = placeLabel(e.toPlaceId, e.toCustomText);
       return [
         e.id, e.createdAt,
-        e.fromPlaceId, `"${fromName}"`,
-        e.toPlaceId, `"${toName}"`,
+        `"${(e.fromText ?? "").replace(/"/g, '""')}"`,
+        `"${(e.toText ?? "").replace(/"/g, '""')}"`,
         `"${e.timeBand}"`, e.weeklyCount, `"${e.currentMode}"`,
         e.currentMinutes ?? "", e.satisfaction, e.expressIntent ?? "",
         `"${(e.note ?? "").replace(/"/g, '""')}"`,
@@ -206,7 +202,7 @@ export default function AdminPage() {
                 >
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-[var(--text-strong)] truncate">
-                      {placeLabel(e.fromPlaceId, e.fromCustomText)} → {placeLabel(e.toPlaceId, e.toCustomText)}
+                      {e.fromText} → {e.toText}
                     </p>
                     <p className="text-[var(--text-muted)] mt-0.5">
                       {e.timeBand} · 주{e.weeklyCount}회 · {e.currentMode}

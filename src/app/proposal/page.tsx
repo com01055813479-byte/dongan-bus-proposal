@@ -6,41 +6,59 @@ import { Lightbulb, ThumbsUp, Bus, TrendingDown, ArrowRight, Users } from "lucid
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { useCommutes } from "@/lib/hooks/useCommutes";
 import { aggregateODBidirectional } from "@/lib/algorithms/odAnalysis";
-import { PLACE_MAP, CATEGORY_LABEL } from "@/lib/constants/places";
+import { PLACES } from "@/lib/constants/places";
 import { dataStore } from "@/lib/storage";
 
 const SUPPORT_KEY = "route-supports-v1";
 
-/**
- * 분석 결과 → 추천 셔틀 노선 도출.
- * 양쪽 거점이 모두 동안구 내(좌표 있음) 또는 한쪽이 4호선역인 경우 → 셔틀 후보.
- * 동안구 외부 ↔ 외부는 셔틀 직접 운영 대상 아님 → 제외 (하지만 분석엔 포함).
- */
+/** 텍스트 이름으로 PLACES 에서 좌표 찾기 */
+function findCoords(text: string): { lat: number; lng: number } | null {
+  const t = text.trim().toLowerCase();
+  for (const p of PLACES) {
+    if (p.lat == null || p.lng == null) continue;
+    if (p.name.toLowerCase() === t) return { lat: p.lat, lng: p.lng };
+  }
+  // 부분 매칭도 시도
+  for (const p of PLACES) {
+    if (p.lat == null || p.lng == null) continue;
+    if (t.includes(p.name.toLowerCase()) || p.name.toLowerCase().includes(t)) {
+      return { lat: p.lat, lng: p.lng };
+    }
+  }
+  return null;
+}
+
 function generateProposals(entries: ReturnType<typeof useCommutes>["entries"]) {
-  const pairs = aggregateODBidirectional(entries).slice(0, 10);
+  const pairs = aggregateODBidirectional(entries).slice(0, 8);
 
   return pairs
     .map((p, i) => {
-      const from = PLACE_MAP[p.fromPlaceId];
-      const to = PLACE_MAP[p.toPlaceId];
-      // 좌표 없으면 (직접입력) 제외
-      if (!from?.lat || !to?.lat) return null;
-      // (동안구 외부 거점은 더 이상 등록되어 있지 않음)
+      const fromCoords = findCoords(p.fromText);
+      const toCoords = findCoords(p.toText);
 
-      const distKm = haversineKm(from.lat, from.lng!, to.lat, to.lng!);
-      // 실측 평균이 있으면 그 값을, 없으면 휴리스틱
+      // 좌표가 양쪽 다 있으면 거리 계산, 없으면 휴리스틱 사용
+      let currentMinutes: number;
+      let expressMinutes: number;
+      let distKm = 0;
       const measured = p.avgCurrentMinutes;
-      const currentMinutes = measured > 0 ? Math.round(measured) : Math.round(distKm * 6 + 3);
-      const expressMinutes = Math.round(distKm * 2.5 + 1);
+
+      if (fromCoords && toCoords) {
+        distKm = haversineKm(fromCoords.lat, fromCoords.lng, toCoords.lat, toCoords.lng);
+        currentMinutes = measured > 0 ? Math.round(measured) : Math.round(distKm * 6 + 3);
+        expressMinutes = Math.round(distKm * 2.5 + 1);
+      } else if (measured > 0) {
+        // 좌표 없음 — 측정값만 사용, 급행은 약 60% 시간으로 추정
+        currentMinutes = Math.round(measured);
+        expressMinutes = Math.round(measured * 0.55);
+      } else {
+        return null;
+      }
 
       return {
         id: `route-${i + 1}`,
         name: `동안구 익스프레스 ${String.fromCharCode(65 + i)}`,
-        stopIds: [p.fromPlaceId, p.toPlaceId],
-        fromLabel: p.fromLabel ?? from.name,
-        toLabel:   p.toLabel ?? to.name,
-        fromCat: from.category,
-        toCat: to.category,
+        fromText: p.fromText,
+        toText:   p.toText,
         currentMinutes,
         expressMinutes,
         savedMinutes: Math.max(0, currentMinutes - expressMinutes),
@@ -48,6 +66,7 @@ function generateProposals(entries: ReturnType<typeof useCommutes>["entries"]) {
         avgSatisfaction: p.avgSatisfaction,
         avgExpressIntent: p.avgExpressIntent,
         measured: measured > 0,
+        hasCoords: !!(fromCoords && toCoords),
       };
     })
     .filter((x): x is NonNullable<typeof x> => x !== null)
@@ -104,12 +123,10 @@ export default function ProposalPage() {
     <div className="flex flex-col gap-5">
       <div className="pt-2 pb-1">
         <p className="text-sm text-[var(--text-muted)] mb-1 flex items-center gap-1.5">
-          <Lightbulb size={14} />
-          제안 노선
+          <Lightbulb size={14} /> 제안 노선
         </p>
         <h1 className="text-2xl font-bold text-[var(--text-strong)] leading-tight">
-          데이터로 뽑은
-          <br />
+          데이터로 뽑은<br />
           <span className="text-[var(--accent)]">추천 급행 셔틀 노선</span>
         </h1>
         <p className="text-sm text-[var(--text-muted)] mt-2 leading-relaxed">
@@ -194,14 +211,14 @@ function RouteCard({
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         <div className="flex items-center gap-2">
-          <StopBadge category={proposal.fromCat}>{proposal.fromLabel}</StopBadge>
-          <ArrowRight size={14} className="text-[var(--text-muted)]" />
-          <StopBadge category={proposal.toCat}>{proposal.toLabel}</StopBadge>
+          <StopBadge>{proposal.fromText}</StopBadge>
+          <ArrowRight size={14} className="text-[var(--text-muted)] shrink-0" />
+          <StopBadge>{proposal.toText}</StopBadge>
         </div>
 
         <div className="grid grid-cols-3 gap-2 text-center">
           <TimeBox
-            label={proposal.measured ? "현재 (실측 평균)" : "현재 (추정)"}
+            label={proposal.measured ? "현재 (실측)" : "현재 (추정)"}
             value={`${proposal.currentMinutes}분`}
             muted
           />
@@ -241,17 +258,14 @@ function RouteCard({
   );
 }
 
-function StopBadge({
-  category, children,
-}: {
-  category?: keyof typeof CATEGORY_LABEL;
-  children: React.ReactNode;
-}) {
-  const color = category ? CATEGORY_LABEL[category].color : "#9ca3af";
+function StopBadge({ children }: { children: React.ReactNode }) {
   return (
     <span
       className="text-xs font-semibold px-2.5 py-1 rounded-lg flex-1 text-center truncate"
-      style={{ backgroundColor: `${color}1A`, color }}
+      style={{
+        backgroundColor: "var(--accent-soft)",
+        color: "var(--accent-text)",
+      }}
     >
       {children}
     </span>
