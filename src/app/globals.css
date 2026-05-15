@@ -1,0 +1,129 @@
+@import "tailwindcss";
+
+/* ─── Tailwind v4: 다크모드 토글 ────────────────────────────────────────── */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ─── Toss 스타일 디자인 토큰 ──────────────────────────────────────────────
+   원칙:
+   - 깨끗한 단색 배경 (그라데이션 X)
+   - 명확한 텍스트 위계 (strong / base / muted / disabled)
+   - 미세한 그림자 + 1px 보더
+   - 한 가지 강조색(파랑)만 사용
+ */
+:root {
+  /* 배경 */
+  --bg:        #f9fafb;  /* 페이지 */
+  --bg-elev:   #ffffff;  /* 카드 */
+  --bg-soft:   #f1f3f5;  /* 인풋, 옅은 영역 */
+
+  /* 보더 */
+  --border:        #e5e8eb;
+  --border-strong: #d1d6db;
+
+  /* 텍스트 */
+  --text-strong: #191f28;   /* 제목 */
+  --text-base:   #4e5968;   /* 본문 */
+  --text-muted:  #8b95a1;   /* 보조 */
+  --text-faint:  #b0b8c1;   /* placeholder */
+
+  /* 강조색 — Toss 블루 */
+  --accent:        #3182f6;
+  --accent-hover:  #1b64da;
+  --accent-soft:   #e8f3ff;
+  --accent-text:   #1b64da;
+
+  /* 그림자 */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+  --shadow:    0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 4px 12px 0 rgba(0, 0, 0, 0.08);
+}
+
+.dark {
+  /* 배경 — 푸른 끼 없는 중성 어둠 */
+  --bg:        #17171c;
+  --bg-elev:   #1f1f24;
+  --bg-soft:   #2a2a30;
+
+  /* 보더 */
+  --border:        #2c2c33;
+  --border-strong: #3a3a42;
+
+  /* 텍스트 */
+  --text-strong: #f4f5f7;
+  --text-base:   #c9cdd2;
+  --text-muted:  #8b95a1;
+  --text-faint:  #5d6571;
+
+  /* 강조색 — 다크에서도 동일한 블루 (살짝 밝게) */
+  --accent:        #4d8bff;
+  --accent-hover:  #6ba0ff;
+  --accent-soft:   rgba(77, 139, 255, 0.12);
+  --accent-text:   #6ba0ff;
+
+  /* 그림자 — 다크에서는 거의 안 보이게 */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow:    0 1px 3px 0 rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 4px 12px 0 rgba(0, 0, 0, 0.5);
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text-base);
+  font-family:
+    "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
+    "Segoe UI", "Malgun Gothic", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* ─── 토스 스타일 카드 클래스 ───────────────────────────────────────────── */
+.card {
+  background-color: var(--bg-elev);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+.card-elev {
+  background-color: var(--bg-elev);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+/* ─── 토스 스타일 인풋 클래스 ───────────────────────────────────────────── */
+.input {
+  background-color: var(--bg-soft);
+  border: 1px solid transparent;
+  color: var(--text-strong);
+  transition: all 0.15s ease;
+}
+.input:hover {
+  background-color: var(--bg-soft);
+  border-color: var(--border);
+}
+.input:focus {
+  background-color: var(--bg-elev);
+  border-color: var(--accent);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* ─── 스크롤바 다크모드 ────────────────────────────────────────────────── */
+.dark ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.dark ::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 5px;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
