@@ -201,7 +201,7 @@ export default function AdminPage() {
                 >
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-[var(--text-strong)] truncate">
-                      {e.routeText}
+                      {e.routeText || <span className="italic text-[var(--text-muted)]">(노선 미입력)</span>}
                     </p>
                     <p className="text-[var(--text-muted)] mt-0.5">
                       {e.timeBand} · 혼잡 {e.congestion}/5 · 주{e.weeklyCount}회 · {e.currentMode}

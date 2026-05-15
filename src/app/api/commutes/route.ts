@@ -25,8 +25,11 @@ export async function POST(req: Request) {
     const body = await req.json();
 
     const routeText = typeof body.routeText === "string" ? normalizeText(body.routeText) : "";
-    if (!routeText) return NextResponse.json({ error: "노선/구간을 입력해 주세요" }, { status: 400 });
     if (routeText.length > 80) return NextResponse.json({ error: "노선/구간은 80자 이하" }, { status: 400 });
+    // 버스 선택 시에만 필수
+    if (body.currentMode === "버스" && !routeText) {
+      return NextResponse.json({ error: "버스 선택 시 노선/구간 입력 필수" }, { status: 400 });
+    }
 
     if (!TIME_BANDS.includes(body.timeBand)) {
       return NextResponse.json({ error: "잘못된 timeBand" }, { status: 400 });

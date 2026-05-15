@@ -16,18 +16,33 @@ const MODES: TransportMode[] = [
   "자동차", "헬리콥터", "UFO", "기타",
 ];
 
-const CONGESTION_LABELS = [
-  "한산함",
-  "여유 있음",
-  "보통 (서서 가도 편함)",
-  "만원 (불편함)",
-  "극도로 만원 (못 타기도)",
-];
+/** 교통수단별 혼잡도 메시지 (1~5점) */
+const CONGESTION_LABELS_BY_MODE: Record<TransportMode, string[]> = {
+  버스:      ["한산함", "여유 있음", "보통 (서서 가도 편함)", "만원 (불편함)", "극도로 만원 (못 타기도)"],
+  지하철:    ["한산함", "여유 있음", "보통 (서서 가도 편함)", "만원 (불편함)", "극도로 만원 (못 타기도)"],
+  도보:      ["혼자 걸어요", "한산함", "사람 종종 보임", "사람 많아 속도 느림", "인파에 떠밀림"],
+  자전거:    ["길이 텅 비었음", "여유롭게 페달", "보통", "차·사람 많아 조심", "자전거 도로 정체"],
+  자동차:    ["뻥 뚫림 🚗💨", "원활", "약간 느림", "정체", "극심한 정체 (꽉 막힘)"],
+  헬리콥터: [
+    "하늘 통째로 전세 🚁☁️",
+    "가끔 새 한 마리 🦅",
+    "다른 헬기 가끔 ✈️",
+    "헬기 정체 — 관제탑 항의 📞",
+    "스카이라인 자리 없음 🏙️",
+  ],
+  UFO: [
+    "은하 통째로 전세 🌌",
+    "가끔 인공위성 통과 🛰️",
+    "동료 UFO 가끔 마주침 🛸",
+    "외계인 출퇴근 대란 👽👽",
+    "워프 항로 정체 ⚡",
+  ],
+  기타:      ["한산함", "여유 있음", "보통", "혼잡", "극도로 혼잡"],
+};
 
-/** 교통수단에 따라 노선/구간 입력 안내문 변경 */
 function routePlaceholder(mode: TransportMode): string {
   switch (mode) {
-    case "버스":      return "예: 1500번, 마을버스 02 (인덕원→강남)";
+    case "버스":      return "예: 마을버스 02 (귀인중 → 인덕원역)";
     case "지하철":    return "예: 4호선 인덕원→평촌";
     case "도보":      return "예: 호계동→평촌역";
     case "자전거":    return "예: 호계동→평촌학원가";
@@ -75,7 +90,10 @@ export function WelcomeSurveyOverlay() {
     e.preventDefault();
     setError(null);
     const r = routeText.trim();
-    if (!r) return setError("자주 이용하는 버스 노선/구간을 입력해 주세요");
+    // 버스 선택 시에만 노선 입력 필수
+    if (mode === "버스" && !r) {
+      return setError("버스를 선택하셨으니 혼잡한 버스 번호/노선을 입력해 주세요");
+    }
 
     setSubmitting(true);
     try {
@@ -157,7 +175,23 @@ export function WelcomeSurveyOverlay() {
               </div>
             </FormBlock>
 
-            <FormBlock label={mode === "버스" ? "주로 혼잡한 버스 번호 / 노선" : "자주 이용하는 노선 또는 구간"}>
+            <FormBlock
+              label={
+                <span className="flex items-center gap-1.5">
+                  {mode === "버스" ? "주로 혼잡한 버스 번호 / 노선" : "자주 이용하는 노선 또는 구간"}
+                  <span
+                    className={cn(
+                      "text-[9px] font-bold px-1.5 py-0.5 rounded",
+                      mode === "버스"
+                        ? "bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300"
+                        : "bg-[var(--bg-soft)] text-[var(--text-muted)]"
+                    )}
+                  >
+                    {mode === "버스" ? "필수" : "선택사항"}
+                  </span>
+                </span>
+              }
+            >
               <input
                 type="text"
                 value={routeText}
@@ -169,8 +203,8 @@ export function WelcomeSurveyOverlay() {
               />
               <p className="text-[10px] text-[var(--text-muted)] mt-1">
                 {mode === "버스"
-                  ? "버스 번호 + 구간 적어주세요 (1500번, 마을버스 02 등)"
-                  : "노선 번호 / 구간 / 정류장 — 떠오르는 대로 자유롭게"}
+                  ? "버스 번호 + 구간 적어주세요 (예: 마을버스 02, 귀인중→인덕원역)"
+                  : "노선 / 구간 / 장소 — 떠오르면 자유롭게, 안 적어도 OK"}
               </p>
             </FormBlock>
 
@@ -190,10 +224,10 @@ export function WelcomeSurveyOverlay() {
               </div>
             </FormBlock>
 
-            <FormBlock label="이 노선의 혼잡도 (출퇴근 시간 기준)">
+            <FormBlock label="체감 혼잡도 (출퇴근 시간 기준)">
               <CongestionRow value={congestion} onChange={setCongestion} />
               <p className="text-center text-xs text-[var(--text-base)] mt-1.5 font-semibold">
-                {CONGESTION_LABELS[congestion - 1]}
+                {CONGESTION_LABELS_BY_MODE[mode][congestion - 1]}
               </p>
             </FormBlock>
 
@@ -259,7 +293,7 @@ export function WelcomeSurveyOverlay() {
   );
 }
 
-function FormBlock({ label, children }: { label: string; children: React.ReactNode }) {
+function FormBlock({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1.5">
       <span className="text-xs font-bold text-[var(--text-base)]">{label}</span>
