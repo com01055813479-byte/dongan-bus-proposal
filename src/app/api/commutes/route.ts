@@ -5,10 +5,12 @@ import type { CommuteEntry, TimeBand, TransportMode } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-const TIME_BANDS: TimeBand[] = ["출근(06~09)", "퇴근(17~21)", "기타 시간"];
+const TIME_BANDS: TimeBand[] = [
+  "출근(06~09)", "퇴근(17~21)", "학원 하원(21~23)", "기타 시간",
+];
 const MODES: TransportMode[] = [
   "버스", "지하철", "도보", "자전거",
-  "자동차", "헬리콥터", "UFO", "기타",
+  "자동차", "헬리콥터", "비행기", "기타",
 ];
 
 export async function GET() {

@@ -74,7 +74,7 @@ export function aggregateRoutes(entries: CommuteEntry[]): RouteStat[] {
 /** 시간대별 응답 수 합계 */
 export function timeBandDistribution(entries: CommuteEntry[]): Record<TimeBand, number> {
   const out: Record<TimeBand, number> = {
-    "출근(06~09)": 0, "퇴근(17~21)": 0, "기타 시간": 0,
+    "출근(06~09)": 0, "퇴근(17~21)": 0, "학원 하원(21~23)": 0, "기타 시간": 0,
   };
   for (const e of entries) out[e.timeBand] += e.weeklyCount;
   return out;
@@ -84,7 +84,7 @@ export function timeBandDistribution(entries: CommuteEntry[]): Record<TimeBand, 
 export function transportModeDistribution(entries: CommuteEntry[]): Record<TransportMode, number> {
   const out: Record<TransportMode, number> = {
     "버스": 0, "지하철": 0, "도보": 0, "자전거": 0,
-    "자동차": 0, "헬리콥터": 0, "UFO": 0, "기타": 0,
+    "자동차": 0, "헬리콥터": 0, "비행기": 0, "기타": 0,
   };
   for (const e of entries) out[e.currentMode] += e.weeklyCount;
   return out;

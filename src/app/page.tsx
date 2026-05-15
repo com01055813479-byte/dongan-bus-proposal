@@ -27,7 +27,11 @@ export default function HomePage() {
   return (
     <div className="flex flex-col gap-5">
       {/* 인사말 */}
-      <section className="pt-2 pb-1">
+      <section className="pt-2 pb-1 relative">
+        {/* 우측 상단 학번·이름 */}
+        <span className="absolute top-0 right-0 text-[11px] text-[var(--text-muted)] font-mono tabular-nums">
+          10923 조은규
+        </span>
         <p className="text-sm text-[var(--text-muted)] mb-1 flex items-center gap-1.5">
           <Bus size={14} />
           동안구 시민 참여 프로젝트
@@ -71,7 +75,7 @@ export default function HomePage() {
           <CardTitle>프로젝트 진행 단계</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
-          <Step n="1" title="시민 통근 설문" desc="동안구민이 자주 이용하는 노선의 혼잡도 입력" />
+          <Step n="1" title="통근 설문" desc="동안구민이 자주 이용하는 노선의 혼잡도 입력" />
           <Step n="2" title="수요 분석"     desc="만원이 가장 심한 노선/구간 자동 도출" />
           <Step n="3" title="시청 제출"     desc="분석 결과로 안양시청에 급행 셔틀 도입 제안" />
         </CardContent>

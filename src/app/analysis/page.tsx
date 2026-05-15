@@ -253,7 +253,7 @@ export default function AnalysisPage() {
           <div className="flex flex-col gap-1.5">
             {(Object.entries(timeBands) as [string, number][]).map(([band, count]) => {
               const pct = (count / maxTimeCount) * 100;
-              const isPeak = band.startsWith("출근") || band.startsWith("퇴근");
+              const isPeak = band.startsWith("출근") || band.startsWith("퇴근") || band.startsWith("학원");
               return (
                 <div key={band} className="flex items-center gap-2 text-xs">
                   <span className={`w-24 shrink-0 ${isPeak ? "font-bold text-[var(--text-strong)]" : "text-[var(--text-base)]"}`}>

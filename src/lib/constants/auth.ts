@@ -18,12 +18,7 @@ export const GATE_RULES: GateRule[] = [
   {
     password:   "induckmathroad",
     redirectTo: "/admin",
-    label:      "어드민 - 관리자 페이지",
-  },
-  {
-    password:   "eungyusmart",
-    redirectTo: "/games",
-    label:      "은규의 게임 모음",
+    label:      "관리자 페이지",
   },
 ];
 

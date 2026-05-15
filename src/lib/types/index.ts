@@ -25,6 +25,7 @@ export interface CommuteEntry {
 export type TimeBand =
   | "출근(06~09)"
   | "퇴근(17~21)"
+  | "학원 하원(21~23)"
   | "기타 시간";
 
 export type TransportMode =
@@ -34,7 +35,7 @@ export type TransportMode =
   | "자전거"
   | "자동차"
   | "헬리콥터"
-  | "UFO"
+  | "비행기"
   | "기타";
 
 // ─── 노선/구간 통계 ──────────────────────────────────────────────────────────

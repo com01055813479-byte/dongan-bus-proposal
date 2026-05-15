@@ -8,12 +8,14 @@ import type { TimeBand, TransportMode } from "@/lib/types";
 import { cn } from "@/lib/utils/cn";
 
 const COMPLETED_KEY = "survey-completed-v6";
-const BYPASS_PATHS = ["/admin", "/settings", "/games"];
+const BYPASS_PATHS = ["/admin", "/settings"];
 
-const TIME_BANDS: TimeBand[] = ["출근(06~09)", "퇴근(17~21)", "기타 시간"];
+const TIME_BANDS: TimeBand[] = [
+  "출근(06~09)", "퇴근(17~21)", "학원 하원(21~23)", "기타 시간",
+];
 const MODES: TransportMode[] = [
   "버스", "지하철", "도보", "자전거",
-  "자동차", "헬리콥터", "UFO", "기타",
+  "자동차", "헬리콥터", "비행기", "기타",
 ];
 
 /** 교통수단별 혼잡도 메시지 (1~5점) */
@@ -23,20 +25,8 @@ const CONGESTION_LABELS_BY_MODE: Record<TransportMode, string[]> = {
   도보:      ["혼자 걸어요", "한산함", "사람 종종 보임", "사람 많아 속도 느림", "인파에 떠밀림"],
   자전거:    ["길이 텅 비었음", "여유롭게 페달", "보통", "차·사람 많아 조심", "자전거 도로 정체"],
   자동차:    ["뻥 뚫림 🚗💨", "원활", "약간 느림", "정체", "극심한 정체 (꽉 막힘)"],
-  헬리콥터: [
-    "하늘 통째로 전세 🚁☁️",
-    "가끔 새 한 마리 🦅",
-    "다른 헬기 가끔 ✈️",
-    "헬기 정체 — 관제탑 항의 📞",
-    "스카이라인 자리 없음 🏙️",
-  ],
-  UFO: [
-    "은하 통째로 전세 🌌",
-    "가끔 인공위성 통과 🛰️",
-    "동료 UFO 가끔 마주침 🛸",
-    "외계인 출퇴근 대란 👽👽",
-    "워프 항로 정체 ⚡",
-  ],
+  헬리콥터: ["한산함", "여유 있음", "보통", "혼잡", "극도로 혼잡"],
+  비행기:    ["한산함", "여유 있음", "보통", "혼잡", "극도로 혼잡"],
   기타:      ["한산함", "여유 있음", "보통", "혼잡", "극도로 혼잡"],
 };
 
@@ -48,7 +38,7 @@ function routePlaceholder(mode: TransportMode): string {
     case "자전거":    return "예: 호계동→평촌학원가";
     case "자동차":    return "예: 호계동→강남 출퇴근";
     case "헬리콥터":  return "🚁 어디로? (예: 호계동 옥상→강남 빌딩)";
-    case "UFO":       return "👽 외계인 픽업 노선...?";
+    case "비행기":    return "✈️ 어느 항공편? (예: 인천→제주 KE1001)";
     case "기타":      return "이용하는 노선/구간";
   }
 }
@@ -148,18 +138,25 @@ export function WelcomeSurveyOverlay() {
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2 text-[var(--accent-text)] text-xs font-semibold">
               <Bus size={14} />
-              동안구 출퇴근 혼잡 설문
+              주로 타는 버스 혼잡도 조사
             </div>
             <h1 className="text-xl sm:text-2xl font-bold text-[var(--text-strong)] leading-tight">
               평소 자주 타는 버스가<br />얼마나 만원인가요?
             </h1>
             <p className="text-sm text-[var(--text-muted)] leading-relaxed">
-              1분이면 끝납니다. 동안구민의 출퇴근 혼잡 경험을 모아 안양시청에 급행 셔틀버스 도입을 제안하는 학생 비영리 프로젝트입니다.
+              1분이면 끝납니다. 동안구민의 출퇴근·등하교 혼잡 경험을 모아 안양시청에 급행 버스 도입을 제안하는 학생 비영리 프로젝트입니다.
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <FormBlock label="현재 사용하는 교통수단">
+            <FormBlock label={
+              <span className="flex items-baseline gap-1.5">
+                <span>주로 사용하는 교통수단</span>
+                <span className="text-[10px] font-normal text-[var(--text-muted)]">
+                  (출퇴근 · 등하교)
+                </span>
+              </span>
+            }>
               <div className="grid grid-cols-4 gap-1.5">
                 {MODES.map((m) => (
                   <button key={m} type="button" onClick={() => setMode(m)}
@@ -209,7 +206,7 @@ export function WelcomeSurveyOverlay() {
             </FormBlock>
 
             <FormBlock label="이용 시간대">
-              <div className="grid grid-cols-3 gap-1.5">
+              <div className="grid grid-cols-2 gap-1.5">
                 {TIME_BANDS.map((tb) => (
                   <button key={tb} type="button" onClick={() => setTimeBand(tb)}
                     className={cn(
@@ -258,7 +255,15 @@ export function WelcomeSurveyOverlay() {
               </p>
             </FormBlock>
 
-            <FormBlock label="급행 셔틀이 생긴다면 이용할 의향?">
+            <FormBlock label="급행 버스가 생긴다면 이용할 의향?">
+              <div className="rounded-lg bg-[var(--bg-soft)] px-3 py-2 text-[11px] text-[var(--text-base)] leading-relaxed">
+                <strong className="text-[var(--text-strong)]">급행 버스란?</strong>{" "}
+                중간 정류장 대부분을 건너뛰고 <strong>주요 거점만 빠르게 잇는 버스</strong>예요.
+                <br />
+                <span className="text-[var(--text-muted)]">
+                  예: <strong className="text-[var(--accent-text)]">평촌학원가 → 범계역</strong> 직행 (중간 정류장 다 통과)
+                </span>
+              </div>
               <StarRow value={expressIntent} onChange={setExpressIntent} />
               <p className="text-center text-[11px] text-[var(--text-muted)] mt-1">
                 {["절대 안 씀", "별로", "그럭저럭", "쓸 것 같음", "꼭 씀"][expressIntent - 1]}
