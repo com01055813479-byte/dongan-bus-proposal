@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import {
   BarChart3, Clock, Bus, Star, ThumbsUp, AlertTriangle,
   Sparkles, Info, X, Users,
@@ -307,19 +306,13 @@ export default function AnalysisPage() {
         </CardContent>
       </Card>
 
-      {/* 제안 페이지 안내 */}
+      {/* 결론 */}
       <Card>
-        <CardContent className="flex flex-col gap-3 py-5">
+        <CardContent className="flex flex-col gap-2 py-5">
           <p className="text-sm text-[var(--text-base)] leading-relaxed">
             <ThumbsUp className="inline-block mr-1 text-[var(--accent)]" size={14} />
-            <strong className="text-[var(--text-strong)]">결론:</strong> 위 데이터를 바탕으로 만원이 가장 심한 노선들의 급행 셔틀 도입을 제안합니다.
+            <strong className="text-[var(--text-strong)]">결론:</strong> 위 데이터를 바탕으로 만원이 가장 심한 노선들의 급행 셔틀 도입을 안양시청에 제안할 수 있습니다.
           </p>
-          <Link
-            href="/proposal"
-            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--accent)] text-white text-sm font-semibold hover:opacity-90"
-          >
-            제안 노선 보기 →
-          </Link>
         </CardContent>
       </Card>
 

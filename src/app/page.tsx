@@ -1,42 +1,28 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import {
   MapPinned,
   BarChart3,
-  Lightbulb,
   ChevronRight,
   Bus,
   Settings,
   AlertCircle,
 } from "lucide-react";
 import { useCommutes } from "@/lib/hooks/useCommutes";
-import { aggregateRoutes } from "@/lib/algorithms/odAnalysis";
-import { dataStore } from "@/lib/storage";
+import { aggregateRoutes, avgCongestion } from "@/lib/algorithms/odAnalysis";
 
 const FEATURE_CARDS = [
   { href: "/survey",   icon: MapPinned, title: "통근 설문 참여",     desc: "어디에서 어디로 자주 가시나요?" },
   { href: "/analysis", icon: BarChart3, title: "수요 분석 보기",     desc: "수집된 통근 패턴 시각화" },
-  { href: "/proposal", icon: Lightbulb, title: "제안 노선 살펴보기", desc: "분석 결과로 도출된 추천 급행 노선" },
   { href: "/settings", icon: Settings,  title: "설정",               desc: "테마, 데이터 관리" },
 ];
 
 export default function HomePage() {
   const { entries, hydrated } = useCommutes();
-  const [totalSupport, setTotalSupport] = useState(0);
-
-  // 지지 서명 합산
-  useEffect(() => {
-    dataStore.read<{ counts: Record<string, number> }>("route-supports-v1").then((d) => {
-      if (d?.counts) {
-        setTotalSupport(Object.values(d.counts).reduce((a, b) => a + b, 0));
-      }
-    });
-  }, []);
-
-  const proposedRouteCount = Math.min(6, aggregateRoutes(entries).length);
+  const uniqueRoutes = aggregateRoutes(entries).length;
+  const conAvg = avgCongestion(entries);
 
   return (
     <div className="flex flex-col gap-5">
@@ -66,8 +52,8 @@ export default function HomePage() {
         <CardContent>
           <div className="grid grid-cols-3 gap-3 text-center">
             <Stat label="설문 응답" value={hydrated ? `${entries.length}` : "—"} />
-            <Stat label="제안된 노선" value={hydrated ? `${proposedRouteCount}` : "—"} />
-            <Stat label="지지 서명" value={hydrated ? `${totalSupport}` : "—"} accent />
+            <Stat label="언급된 노선" value={hydrated ? `${uniqueRoutes}` : "—"} />
+            <Stat label="평균 혼잡도" value={hydrated ? `${conAvg.toFixed(1)}/5` : "—"} accent />
           </div>
           <p className="text-[11px] text-[var(--text-muted)] mt-3 leading-relaxed">
             아직 데이터가 부족하다면 {" "}
@@ -85,10 +71,9 @@ export default function HomePage() {
           <CardTitle>프로젝트 진행 단계</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
-          <Step n="1" title="시민 통근 설문" desc="동안구민이 평소 출발-도착 거점을 입력" />
-          <Step n="2" title="수요 분석"     desc="가장 인기 있는 이동 경로 자동 도출" />
-          <Step n="3" title="급행 노선 제안" desc="데이터 기반으로 추천 셔틀 노선 작성" />
-          <Step n="4" title="시청 제출"     desc="동안구민 지지와 함께 안양시청에 정책 제안" />
+          <Step n="1" title="시민 통근 설문" desc="동안구민이 자주 이용하는 노선의 혼잡도 입력" />
+          <Step n="2" title="수요 분석"     desc="만원이 가장 심한 노선/구간 자동 도출" />
+          <Step n="3" title="시청 제출"     desc="분석 결과로 안양시청에 급행 셔틀 도입 제안" />
         </CardContent>
       </Card>
 

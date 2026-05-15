@@ -1,4 +1,4 @@
-import { LayoutDashboard, MapPinned, BarChart3, Lightbulb, Settings } from "lucide-react";
+import { LayoutDashboard, MapPinned, BarChart3, Settings } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
 export interface NavItem {
@@ -30,12 +30,6 @@ export const NAV_ITEMS: NavItem[] = [
     label: "수요 분석",
     icon: BarChart3,
     description: "수집된 통근 패턴 시각화",
-  },
-  {
-    href: "/proposal",
-    label: "제안 노선",
-    icon: Lightbulb,
-    description: "분석 결과 기반 추천 급행 노선",
   },
   {
     href: "/settings",
