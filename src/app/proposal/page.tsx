@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Lightbulb, ThumbsUp, Bus, Clock, TrendingDown, ArrowRight } from "lucide-react";
+import { Lightbulb, ThumbsUp, Bus, TrendingDown, ArrowRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { useCommutes } from "@/lib/hooks/useCommutes";
 import { aggregateODBidirectional } from "@/lib/algorithms/odAnalysis";
