@@ -11,7 +11,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { useCommutes } from "@/lib/hooks/useCommutes";
-import { aggregateRoutes, avgCongestion } from "@/lib/algorithms/odAnalysis";
+import { aggregateRoutes } from "@/lib/algorithms/odAnalysis";
 
 const FEATURE_CARDS = [
   { href: "/survey",   icon: MapPinned, title: "통근 설문 참여",     desc: "어디에서 어디로 자주 가시나요?" },
@@ -22,7 +22,6 @@ const FEATURE_CARDS = [
 export default function HomePage() {
   const { entries, hydrated } = useCommutes();
   const uniqueRoutes = aggregateRoutes(entries).length;
-  const conAvg = avgCongestion(entries);
 
   return (
     <div className="flex flex-col gap-5">
@@ -54,10 +53,9 @@ export default function HomePage() {
           <CardTitle>현재까지 모인 데이터</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-3 gap-3 text-center">
+          <div className="grid grid-cols-2 gap-3 text-center">
             <Stat label="설문 응답" value={hydrated ? `${entries.length}` : "—"} />
-            <Stat label="언급된 노선" value={hydrated ? `${uniqueRoutes}` : "—"} />
-            <Stat label="평균 혼잡도" value={hydrated ? `${conAvg.toFixed(1)}/5` : "—"} accent />
+            <Stat label="언급된 노선" value={hydrated ? `${uniqueRoutes}` : "—"} accent />
           </div>
           <p className="text-[11px] text-[var(--text-muted)] mt-3 leading-relaxed">
             아직 데이터가 부족하다면 {" "}
