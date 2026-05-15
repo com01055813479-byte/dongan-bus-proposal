@@ -1,29 +1,32 @@
 /**
- * OD(Origin-Destination) 분석 — 자유 텍스트 기반.
- * 같은 거점이라도 표기가 다를 수 있어 normalizeText 로 정리한 후 집계.
+ * 노선/구간별 혼잡도 분석.
+ * "어느 노선이 얼마나 만원인가" 라는 직접적인 증거에 집중.
  */
 
-import type { CommuteEntry, ODPair, TimeBand, TransportMode } from "@/lib/types";
+import type { CommuteEntry, RouteStat, TimeBand, TransportMode } from "@/lib/types";
 import { normalizeText } from "@/lib/types";
 
-/** 모든 OD 페어 집계 (방향 구별) */
-export function aggregateOD(entries: CommuteEntry[]): ODPair[] {
-  const map = new Map<string, ODPair & {
+/** routeText 별로 통계 집계 */
+export function aggregateRoutes(entries: CommuteEntry[]): RouteStat[] {
+  type Acc = RouteStat & {
+    _conSum: number; _conCount: number;
     _satSum: number; _satCount: number;
     _minSum: number; _minCount: number;
     _intentSum: number; _intentCount: number;
-  }>();
+  };
+  const map = new Map<string, Acc>();
 
   for (const e of entries) {
-    const from = normalizeText(e.fromText);
-    const to   = normalizeText(e.toText);
-    if (!from || !to) continue;
-    const key = `${from}|>|${to}`;
+    const key = normalizeText(e.routeText);
+    if (!key) continue;
 
     const existing = map.get(key);
     if (existing) {
       existing.totalCount += e.weeklyCount;
+      existing.responseCount += 1;
       existing.byTimeBand[e.timeBand] = (existing.byTimeBand[e.timeBand] ?? 0) + e.weeklyCount;
+      existing._conSum += e.congestion;
+      existing._conCount += 1;
       existing._satSum += e.satisfaction;
       existing._satCount += 1;
       if (typeof e.currentMinutes === "number") {
@@ -36,13 +39,15 @@ export function aggregateOD(entries: CommuteEntry[]): ODPair[] {
       }
     } else {
       map.set(key, {
-        fromText: from,
-        toText: to,
+        routeText: key,
         totalCount: e.weeklyCount,
-        byTimeBand: { [e.timeBand]: e.weeklyCount },
+        responseCount: 1,
+        avgCongestion: e.congestion,
         avgSatisfaction: e.satisfaction,
         avgCurrentMinutes: 0,
         avgExpressIntent: 0,
+        byTimeBand: { [e.timeBand]: e.weeklyCount },
+        _conSum: e.congestion, _conCount: 1,
         _satSum: e.satisfaction, _satCount: 1,
         _minSum: typeof e.currentMinutes === "number" ? e.currentMinutes : 0,
         _minCount: typeof e.currentMinutes === "number" ? 1 : 0,
@@ -54,72 +59,14 @@ export function aggregateOD(entries: CommuteEntry[]): ODPair[] {
 
   return Array.from(map.values())
     .map((p) => ({
-      fromText: p.fromText,
-      toText: p.toText,
+      routeText: p.routeText,
       totalCount: p.totalCount,
-      byTimeBand: p.byTimeBand,
-      avgSatisfaction:   p._satSum / p._satCount,
+      responseCount: p.responseCount,
+      avgCongestion:    p._conSum / p._conCount,
+      avgSatisfaction:  p._satSum / p._satCount,
       avgCurrentMinutes: p._minCount > 0    ? p._minSum / p._minCount       : 0,
       avgExpressIntent:  p._intentCount > 0 ? p._intentSum / p._intentCount : 0,
-    }))
-    .sort((a, b) => b.totalCount - a.totalCount);
-}
-
-/** 방향 무관 OD 페어 집계 */
-export function aggregateODBidirectional(entries: CommuteEntry[]): ODPair[] {
-  const map = new Map<string, ODPair & {
-    _satSum: number; _satCount: number;
-    _minSum: number; _minCount: number;
-    _intentSum: number; _intentCount: number;
-  }>();
-
-  for (const e of entries) {
-    const from = normalizeText(e.fromText);
-    const to   = normalizeText(e.toText);
-    if (!from || !to) continue;
-    const [a, b] = [from, to].sort();
-    const key = `${a}|<>|${b}`;
-
-    const existing = map.get(key);
-    if (existing) {
-      existing.totalCount += e.weeklyCount;
-      existing.byTimeBand[e.timeBand] = (existing.byTimeBand[e.timeBand] ?? 0) + e.weeklyCount;
-      existing._satSum += e.satisfaction;
-      existing._satCount += 1;
-      if (typeof e.currentMinutes === "number") {
-        existing._minSum += e.currentMinutes;
-        existing._minCount += 1;
-      }
-      if (typeof e.expressIntent === "number") {
-        existing._intentSum += e.expressIntent;
-        existing._intentCount += 1;
-      }
-    } else {
-      map.set(key, {
-        fromText: a, toText: b,
-        totalCount: e.weeklyCount,
-        byTimeBand: { [e.timeBand]: e.weeklyCount },
-        avgSatisfaction: e.satisfaction,
-        avgCurrentMinutes: 0,
-        avgExpressIntent: 0,
-        _satSum: e.satisfaction, _satCount: 1,
-        _minSum: typeof e.currentMinutes === "number" ? e.currentMinutes : 0,
-        _minCount: typeof e.currentMinutes === "number" ? 1 : 0,
-        _intentSum: typeof e.expressIntent === "number" ? e.expressIntent : 0,
-        _intentCount: typeof e.expressIntent === "number" ? 1 : 0,
-      });
-    }
-  }
-
-  return Array.from(map.values())
-    .map((p) => ({
-      fromText: p.fromText,
-      toText: p.toText,
-      totalCount: p.totalCount,
       byTimeBand: p.byTimeBand,
-      avgSatisfaction:   p._satSum / p._satCount,
-      avgCurrentMinutes: p._minCount > 0    ? p._minSum / p._minCount       : 0,
-      avgExpressIntent:  p._intentCount > 0 ? p._intentSum / p._intentCount : 0,
     }))
     .sort((a, b) => b.totalCount - a.totalCount);
 }
@@ -141,6 +88,11 @@ export function transportModeDistribution(entries: CommuteEntry[]): Record<Trans
   };
   for (const e of entries) out[e.currentMode] += e.weeklyCount;
   return out;
+}
+
+export function avgCongestion(entries: CommuteEntry[]): number {
+  if (entries.length === 0) return 0;
+  return entries.reduce((s, e) => s + e.congestion, 0) / entries.length;
 }
 
 export function avgSatisfaction(entries: CommuteEntry[]): number {
@@ -165,4 +117,10 @@ export function pctHighIntent(entries: CommuteEntry[]): number {
   if (valid.length === 0) return 0;
   const high = valid.filter((e) => (e.expressIntent ?? 0) >= 4).length;
   return (high / valid.length) * 100;
+}
+
+export function pctHighCongestion(entries: CommuteEntry[]): number {
+  if (entries.length === 0) return 0;
+  const high = entries.filter((e) => e.congestion >= 4).length;
+  return (high / entries.length) * 100;
 }

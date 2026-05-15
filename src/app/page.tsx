@@ -13,7 +13,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { useCommutes } from "@/lib/hooks/useCommutes";
-import { aggregateODBidirectional } from "@/lib/algorithms/odAnalysis";
+import { aggregateRoutes } from "@/lib/algorithms/odAnalysis";
 import { dataStore } from "@/lib/storage";
 
 const FEATURE_CARDS = [
@@ -36,7 +36,7 @@ export default function HomePage() {
     });
   }, []);
 
-  const proposedRouteCount = Math.min(6, aggregateODBidirectional(entries).length);
+  const proposedRouteCount = Math.min(6, aggregateRoutes(entries).length);
 
   return (
     <div className="flex flex-col gap-5">

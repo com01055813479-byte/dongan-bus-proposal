@@ -2,10 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { MapPinned, ArrowRight, CheckCircle2, Star } from "lucide-react";
+import { MapPinned, ArrowRight, CheckCircle2, Star, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { PLACES } from "@/lib/constants/places";
 import { useCommutes } from "@/lib/hooks/useCommutes";
 import type { TimeBand, TransportMode } from "@/lib/types";
 import { cn } from "@/lib/utils/cn";
@@ -14,14 +13,16 @@ const TIME_BANDS: TimeBand[] = ["출근(06~09)", "퇴근(17~21)", "기타 시간
 const MODES: TransportMode[] = [
   "마을버스", "시내버스", "지하철", "도보", "자전거", "자가용", "택시", "기타",
 ];
-const PLACE_SUGGESTIONS = PLACES.filter((p) => p.id !== "other").map((p) => p.name);
+const CONGESTION_LABELS = [
+  "한산함", "여유 있음", "보통 (서서 가도 편함)", "만원 (불편함)", "극도로 만원 (못 타기도)",
+];
 
 export default function SurveyPage() {
   const { add } = useCommutes();
 
-  const [fromText, setFromText] = useState("");
-  const [toText, setToText] = useState("");
+  const [routeText, setRouteText] = useState("");
   const [timeBand, setTimeBand] = useState<TimeBand>("출근(06~09)");
+  const [congestion, setCongestion] = useState<1 | 2 | 3 | 4 | 5>(3);
   const [weeklyCount, setWeeklyCount] = useState(5);
   const [mode, setMode] = useState<TransportMode>("마을버스");
   const [currentMinutes, setCurrentMinutes] = useState(20);
@@ -34,24 +35,17 @@ export default function SurveyPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    const f = fromText.trim();
-    const t = toText.trim();
-    if (!f) return setError("출발지를 입력해 주세요");
-    if (!t) return setError("도착지를 입력해 주세요");
-    if (f === t) return setError("출발지와 도착지가 같습니다");
+    const r = routeText.trim();
+    if (!r) return setError("자주 이용하는 버스 노선/구간을 입력해 주세요");
     try {
       await add({
-        fromText: f,
-        toText: t,
-        timeBand,
-        weeklyCount,
-        currentMode: mode,
-        currentMinutes,
-        satisfaction,
-        expressIntent,
+        routeText: r,
+        timeBand, congestion, weeklyCount,
+        currentMode: mode, currentMinutes,
+        satisfaction, expressIntent,
         note: note || undefined,
       });
-      try { localStorage.setItem("survey-completed-v3", "1"); } catch {}
+      try { localStorage.setItem("survey-completed-v5", "1"); } catch {}
       setSubmitted(true);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
@@ -61,9 +55,8 @@ export default function SurveyPage() {
 
   function handleAnother() {
     setSubmitted(false);
-    setFromText(""); setToText("");
-    setNote("");
-    setSatisfaction(3); setExpressIntent(4);
+    setRouteText(""); setNote("");
+    setCongestion(3); setSatisfaction(3); setExpressIntent(4);
     setWeeklyCount(5); setCurrentMinutes(20);
   }
 
@@ -72,7 +65,7 @@ export default function SurveyPage() {
       <div className="flex flex-col gap-5">
         <div className="pt-2 pb-1">
           <p className="text-sm text-[var(--text-muted)] mb-1 flex items-center gap-1.5">
-            <MapPinned size={14} /> 출퇴근 설문
+            <MapPinned size={14} /> 출퇴근 혼잡 설문
           </p>
           <h1 className="text-2xl font-bold text-[var(--text-strong)] leading-tight">
             응답해 주셔서<br />
@@ -83,15 +76,13 @@ export default function SurveyPage() {
         <Card>
           <CardContent className="flex flex-col items-center gap-3 py-8 text-center">
             <CheckCircle2 size={48} className="text-emerald-500" />
-            <p className="text-base font-semibold text-[var(--text-strong)]">
-              응답이 저장되었습니다
-            </p>
+            <p className="text-base font-semibold text-[var(--text-strong)]">응답이 저장되었습니다</p>
           </CardContent>
         </Card>
 
         <div className="grid grid-cols-2 gap-2">
           <Button onClick={handleAnother} variant="primary">
-            <MapPinned size={16} /> 한 번 더 응답
+            <MapPinned size={16} /> 다른 노선 응답
           </Button>
           <Link href="/analysis" className="flex">
             <button className="card w-full rounded-2xl px-4 py-2.5 text-sm font-semibold flex items-center justify-center gap-2 hover:bg-[var(--bg-soft)] transition-colors">
@@ -107,53 +98,35 @@ export default function SurveyPage() {
     <div className="flex flex-col gap-5">
       <div className="pt-2 pb-1">
         <p className="text-sm text-[var(--text-muted)] mb-1 flex items-center gap-1.5">
-          <MapPinned size={14} /> 출퇴근 설문
+          <MapPinned size={14} /> 출퇴근 혼잡 설문
         </p>
         <h1 className="text-2xl font-bold text-[var(--text-strong)] leading-tight">
-          평소 출퇴근 경로를<br />
-          <span className="text-[var(--accent)]">알려주세요</span>
+          평소 자주 타는 버스가<br />
+          <span className="text-[var(--accent)]">얼마나 만원인가요?</span>
         </h1>
       </div>
 
-      <datalist id="place-suggestions">
-        {PLACE_SUGGESTIONS.map((name) => (
-          <option key={name} value={name} />
-        ))}
-      </datalist>
-
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <Card>
-          <CardHeader><CardTitle>출발지·도착지</CardTitle></CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            <FormBlock label="출발지">
-              <input
-                type="text"
-                value={fromText}
-                onChange={(e) => setFromText(e.target.value)}
-                placeholder="예: 비산동, 평촌역, 호계동 ○○아파트"
-                list="place-suggestions"
-                maxLength={80}
-                className="input rounded-xl px-3 py-2.5 text-sm w-full"
-                autoComplete="off"
-              />
-            </FormBlock>
-            <FormBlock label="도착지">
-              <input
-                type="text"
-                value={toText}
-                onChange={(e) => setToText(e.target.value)}
-                placeholder="예: 강남역, 평촌학원가, 안양시청"
-                list="place-suggestions"
-                maxLength={80}
-                className="input rounded-xl px-3 py-2.5 text-sm w-full"
-                autoComplete="off"
-              />
-            </FormBlock>
+          <CardHeader><CardTitle>자주 이용하는 버스 노선 또는 구간</CardTitle></CardHeader>
+          <CardContent>
+            <input
+              type="text"
+              value={routeText}
+              onChange={(e) => setRouteText(e.target.value)}
+              placeholder="예: 1500번 (인덕원→강남), 마을버스 02 (평촌학원가→호계동)"
+              maxLength={80}
+              className="input rounded-xl px-3 py-2.5 text-sm w-full"
+              autoComplete="off"
+            />
+            <p className="text-[11px] text-[var(--text-muted)] mt-2">
+              노선 번호 / 구간 / 정류장 — 떠오르는 대로 자유롭게
+            </p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader><CardTitle>이 경로의 주된 이동 시간</CardTitle></CardHeader>
+          <CardHeader><CardTitle>이용 시간대</CardTitle></CardHeader>
           <CardContent>
             <div className="grid grid-cols-3 gap-2">
               {TIME_BANDS.map((tb) => (
@@ -168,6 +141,16 @@ export default function SurveyPage() {
                 </button>
               ))}
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader><CardTitle>이 노선의 혼잡도 (출퇴근 시간 기준)</CardTitle></CardHeader>
+          <CardContent>
+            <CongestionRow value={congestion} onChange={setCongestion} />
+            <p className="text-center text-sm text-[var(--text-base)] mt-3 font-semibold">
+              {CONGESTION_LABELS[congestion - 1]}
+            </p>
           </CardContent>
         </Card>
 
@@ -213,9 +196,6 @@ export default function SurveyPage() {
             <input type="range" min={5} max={120} step={5} value={currentMinutes}
               onChange={(e) => setCurrentMinutes(parseInt(e.target.value, 10))}
               className="w-full accent-[var(--accent)]" />
-            <div className="flex justify-between text-[11px] text-[var(--text-muted)] mt-1">
-              <span>5분</span><span>60분</span><span>120분</span>
-            </div>
           </CardContent>
         </Card>
 
@@ -254,19 +234,8 @@ export default function SurveyPage() {
           </div>
         )}
 
-        <Button type="submit" size="lg">
-          응답 제출 <ArrowRight size={16} />
-        </Button>
+        <Button type="submit" size="lg">응답 제출 <ArrowRight size={16} /></Button>
       </form>
-    </div>
-  );
-}
-
-function FormBlock({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <label className="text-xs font-bold text-[var(--text-base)]">{label}</label>
-      {children}
     </div>
   );
 }
@@ -281,11 +250,41 @@ function StarRow({
           <Star size={28}
             className={cn(
               "transition-colors",
-              n <= value
-                ? "text-amber-400 fill-amber-400"
-                : "text-[var(--border-strong)]"
+              n <= value ? "text-amber-400 fill-amber-400" : "text-[var(--border-strong)]"
             )}
           />
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function CongestionRow({
+  value, onChange,
+}: { value: 1 | 2 | 3 | 4 | 5; onChange: (n: 1 | 2 | 3 | 4 | 5) => void }) {
+  const colors = ["#22c55e", "#84cc16", "#eab308", "#f97316", "#ef4444"];
+  return (
+    <div className="flex items-center justify-between gap-1.5">
+      {[1, 2, 3, 4, 5].map((n) => (
+        <button
+          key={n}
+          type="button"
+          onClick={() => onChange(n as 1 | 2 | 3 | 4 | 5)}
+          aria-label={`${n}점`}
+          className={cn(
+            "flex flex-col items-center gap-1 flex-1 px-1 py-3 rounded-xl transition-all",
+            n === value ? "bg-[var(--bg-soft)]" : "hover:bg-[var(--bg-soft)]"
+          )}
+          style={n === value ? { boxShadow: `inset 0 0 0 2px ${colors[n - 1]}` } : undefined}
+        >
+          <Users
+            size={26}
+            color={n <= value ? colors[n - 1] : "var(--border-strong)"}
+            fill={n <= value ? colors[n - 1] : "none"}
+          />
+          <span className="text-[11px] font-bold" style={{ color: n <= value ? colors[n - 1] : "var(--text-muted)" }}>
+            {n}
+          </span>
         </button>
       ))}
     </div>

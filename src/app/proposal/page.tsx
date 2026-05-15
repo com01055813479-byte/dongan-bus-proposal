@@ -2,87 +2,40 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Lightbulb, ThumbsUp, Bus, TrendingDown, ArrowRight, Users } from "lucide-react";
+import { Lightbulb, ThumbsUp, Bus, Users, ArrowRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { useCommutes } from "@/lib/hooks/useCommutes";
-import { aggregateODBidirectional } from "@/lib/algorithms/odAnalysis";
-import { PLACES } from "@/lib/constants/places";
+import { aggregateRoutes } from "@/lib/algorithms/odAnalysis";
 import { dataStore } from "@/lib/storage";
+import type { RouteStat } from "@/lib/types";
 
-const SUPPORT_KEY = "route-supports-v1";
+const SUPPORT_KEY = "route-supports-v2";
 
-/** 텍스트 이름으로 PLACES 에서 좌표 찾기 */
-function findCoords(text: string): { lat: number; lng: number } | null {
-  const t = text.trim().toLowerCase();
-  for (const p of PLACES) {
-    if (p.lat == null || p.lng == null) continue;
-    if (p.name.toLowerCase() === t) return { lat: p.lat, lng: p.lng };
-  }
-  // 부분 매칭도 시도
-  for (const p of PLACES) {
-    if (p.lat == null || p.lng == null) continue;
-    if (t.includes(p.name.toLowerCase()) || p.name.toLowerCase().includes(t)) {
-      return { lat: p.lat, lng: p.lng };
-    }
-  }
-  return null;
+/**
+ * 제안 노선 도출:
+ * 혼잡도 + 수요 + 의향을 가중평균해 우선순위 점수를 계산.
+ * 점수 높은 노선 = 급행 셔틀 도입 시급.
+ */
+function priorityScore(r: RouteStat): number {
+  const con    = (r.avgCongestion - 1) / 4 * 100;       // 0~100
+  const demand = Math.min(r.totalCount / 30, 1) * 100;  // 주 30회 이상이면 만점
+  const intent = r.avgExpressIntent > 0 ? (r.avgExpressIntent - 1) / 4 * 100 : 50;
+  return Math.round(con * 0.4 + demand * 0.3 + intent * 0.3);
 }
 
 function generateProposals(entries: ReturnType<typeof useCommutes>["entries"]) {
-  const pairs = aggregateODBidirectional(entries).slice(0, 8);
-
-  return pairs
-    .map((p, i) => {
-      const fromCoords = findCoords(p.fromText);
-      const toCoords = findCoords(p.toText);
-
-      // 좌표가 양쪽 다 있으면 거리 계산, 없으면 휴리스틱 사용
-      let currentMinutes: number;
-      let expressMinutes: number;
-      let distKm = 0;
-      const measured = p.avgCurrentMinutes;
-
-      if (fromCoords && toCoords) {
-        distKm = haversineKm(fromCoords.lat, fromCoords.lng, toCoords.lat, toCoords.lng);
-        currentMinutes = measured > 0 ? Math.round(measured) : Math.round(distKm * 6 + 3);
-        expressMinutes = Math.round(distKm * 2.5 + 1);
-      } else if (measured > 0) {
-        // 좌표 없음 — 측정값만 사용, 급행은 약 60% 시간으로 추정
-        currentMinutes = Math.round(measured);
-        expressMinutes = Math.round(measured * 0.55);
-      } else {
-        return null;
-      }
-
-      return {
-        id: `route-${i + 1}`,
-        name: `동안구 익스프레스 ${String.fromCharCode(65 + i)}`,
-        fromText: p.fromText,
-        toText:   p.toText,
-        currentMinutes,
-        expressMinutes,
-        savedMinutes: Math.max(0, currentMinutes - expressMinutes),
-        weeklyDemand: p.totalCount,
-        avgSatisfaction: p.avgSatisfaction,
-        avgExpressIntent: p.avgExpressIntent,
-        measured: measured > 0,
-        hasCoords: !!(fromCoords && toCoords),
-      };
-    })
-    .filter((x): x is NonNullable<typeof x> => x !== null)
+  const routes = aggregateRoutes(entries);
+  return routes
+    .map((r, i) => ({
+      id: `route-${i + 1}`,
+      ...r,
+      priority: priorityScore(r),
+    }))
+    .sort((a, b) => b.priority - a.priority)
     .slice(0, 6);
 }
 
-function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const R = 6371;
-  const toRad = (d: number) => (d * Math.PI) / 180;
-  const dLat = toRad(lat2 - lat1);
-  const dLng = toRad(lng2 - lng1);
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
-  return 2 * R * Math.asin(Math.sqrt(a));
-}
+const CONGESTION_LABELS = ["한산함", "여유 있음", "보통", "만원", "극도로 만원"];
 
 export default function ProposalPage() {
   const { entries, hydrated } = useCommutes();
@@ -126,11 +79,11 @@ export default function ProposalPage() {
           <Lightbulb size={14} /> 제안 노선
         </p>
         <h1 className="text-2xl font-bold text-[var(--text-strong)] leading-tight">
-          데이터로 뽑은<br />
-          <span className="text-[var(--accent)]">추천 급행 셔틀 노선</span>
+          시민 응답으로 도출된<br />
+          <span className="text-[var(--accent)]">급행 셔틀 도입 우선순위</span>
         </h1>
         <p className="text-sm text-[var(--text-muted)] mt-2 leading-relaxed">
-          시민 출퇴근 설문에서 수요가 많은 구간을 직행 셔틀 노선으로 변환했습니다.
+          혼잡도 + 수요 + 이용 의향을 종합해 우선순위가 높은 노선/구간 순으로 제안합니다.
           지지 버튼을 눌러 동안구청 제안에 힘을 보태주세요.
         </p>
       </div>
@@ -160,10 +113,11 @@ export default function ProposalPage() {
           </CardContent>
         </Card>
       ) : (
-        proposals.map((p) => (
+        proposals.map((p, idx) => (
           <RouteCard
             key={p.id}
-            proposal={p}
+            rank={idx + 1}
+            route={p}
             supportCount={supports[p.id] ?? 0}
             supported={myVotes.has(p.id)}
             onSupport={() => toggleSupport(p.id)}
@@ -178,7 +132,7 @@ export default function ProposalPage() {
             href="/survey"
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--accent)] text-white text-sm font-semibold hover:opacity-90"
           >
-            <Bus size={16} /> 출퇴근 설문 참여 <ArrowRight size={14} />
+            <Bus size={16} /> 출퇴근 혼잡 설문 참여 <ArrowRight size={14} />
           </Link>
         </CardContent>
       </Card>
@@ -187,60 +141,62 @@ export default function ProposalPage() {
 }
 
 function RouteCard({
-  proposal, supportCount, supported, onSupport,
+  rank, route, supportCount, supported, onSupport,
 }: {
-  proposal: NonNullable<ReturnType<typeof generateProposals>>[number];
+  rank: number;
+  route: RouteStat & { id: string; priority: number };
   supportCount: number;
   supported: boolean;
   onSupport: () => void;
 }) {
+  const conColor = ["#22c55e", "#84cc16", "#eab308", "#f97316", "#ef4444"]
+    [Math.round(route.avgCongestion) - 1] ?? "#9ca3af";
+  const conLabel = CONGESTION_LABELS[Math.round(route.avgCongestion) - 1] ?? "—";
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>
           <span className="flex items-center justify-between gap-2 w-full">
             <span className="flex items-center gap-2">
+              <span className="text-xs font-mono font-bold text-[var(--text-muted)]">#{rank}</span>
               <Bus size={16} className="text-[var(--accent)]" />
-              {proposal.name}
+              <span className="text-sm">{route.routeText}</span>
             </span>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--accent-soft)] text-[var(--accent-text)]">
-              주 {proposal.weeklyDemand}회 수요
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--accent-soft)] text-[var(--accent-text)] shrink-0">
+              우선순위 {route.priority}
             </span>
           </span>
         </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
-        <div className="flex items-center gap-2">
-          <StopBadge>{proposal.fromText}</StopBadge>
-          <ArrowRight size={14} className="text-[var(--text-muted)] shrink-0" />
-          <StopBadge>{proposal.toText}</StopBadge>
-        </div>
-
-        <div className="grid grid-cols-3 gap-2 text-center">
-          <TimeBox
-            label={proposal.measured ? "현재 (실측)" : "현재 (추정)"}
-            value={`${proposal.currentMinutes}분`}
-            muted
-          />
-          <TimeBox label="제안 급행" value={`${proposal.expressMinutes}분`} accent />
-          <TimeBox
-            label="단축 시간"
-            value={`-${proposal.savedMinutes}분`}
-            color="text-emerald-600 dark:text-emerald-400"
-            icon={<TrendingDown size={12} />}
-          />
-        </div>
-
-        {proposal.avgExpressIntent > 0 && (
-          <div className="flex items-center gap-2 text-[11px] text-[var(--text-muted)] px-1">
-            <Users size={12} />
-            응답자 평균 이용 의향:{" "}
-            <span className="font-bold text-[var(--accent-text)]">
-              {proposal.avgExpressIntent.toFixed(1)} / 5
-            </span>
+        {/* 혼잡도 강조 */}
+        <div
+          className="rounded-xl px-3 py-2.5 flex items-center justify-between"
+          style={{ background: `${conColor}15` }}
+        >
+          <div className="flex items-center gap-2">
+            <Users size={20} style={{ color: conColor }} />
+            <div>
+              <p className="text-[10px] text-[var(--text-muted)]">시민 평가 혼잡도</p>
+              <p className="text-sm font-bold" style={{ color: conColor }}>
+                {conLabel}
+              </p>
+            </div>
           </div>
-        )}
+          <span className="text-2xl font-black tabular-nums" style={{ color: conColor }}>
+            {route.avgCongestion.toFixed(1)}
+          </span>
+        </div>
 
+        {/* 통계 */}
+        <div className="grid grid-cols-3 gap-2 text-center">
+          <Stat label="응답 수" value={`${route.responseCount}명`} />
+          <Stat label="주 이용량" value={`${route.totalCount}회`} />
+          <Stat label="이용 의향" value={route.avgExpressIntent > 0 ? `${route.avgExpressIntent.toFixed(1)}/5` : "—"} accent />
+        </div>
+
+        {/* 지지 버튼 */}
         <button
           onClick={onSupport}
           className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
@@ -258,42 +214,11 @@ function RouteCard({
   );
 }
 
-function StopBadge({ children }: { children: React.ReactNode }) {
+function Stat({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
   return (
-    <span
-      className="text-xs font-semibold px-2.5 py-1 rounded-lg flex-1 text-center truncate"
-      style={{
-        backgroundColor: "var(--accent-soft)",
-        color: "var(--accent-text)",
-      }}
-    >
-      {children}
-    </span>
-  );
-}
-
-function TimeBox({
-  label, value, muted, accent, color, icon,
-}: {
-  label: string;
-  value: string;
-  muted?: boolean;
-  accent?: boolean;
-  color?: string;
-  icon?: React.ReactNode;
-}) {
-  return (
-    <div className={`rounded-xl px-2 py-2 ${accent ? "bg-[var(--accent-soft)]" : "bg-[var(--bg-soft)]"}`}>
-      <p className={`text-[10px] flex items-center justify-center gap-1 ${muted ? "text-[var(--text-muted)]" : "text-[var(--text-base)]"}`}>
-        {icon} {label}
-      </p>
-      <p
-        className={`text-base font-bold mt-0.5 tabular-nums ${
-          color ?? (accent ? "text-[var(--accent-text)]" : "text-[var(--text-strong)]")
-        }`}
-      >
-        {value}
-      </p>
+    <div className={`rounded-lg px-2 py-2 ${accent ? "bg-[var(--accent-soft)]" : "bg-[var(--bg-soft)]"}`}>
+      <p className={`text-[10px] ${accent ? "text-[var(--accent-text)]" : "text-[var(--text-muted)]"}`}>{label}</p>
+      <p className={`text-sm font-bold tabular-nums ${accent ? "text-[var(--accent-text)]" : "text-[var(--text-strong)]"}`}>{value}</p>
     </div>
   );
 }

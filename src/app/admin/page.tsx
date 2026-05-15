@@ -26,18 +26,17 @@ export default function AdminPage() {
   function exportCSV() {
     const header = [
       "id", "createdAt",
-      "fromText", "toText",
-      "timeBand", "weeklyCount", "currentMode",
-      "currentMinutes", "satisfaction", "expressIntent",
-      "note",
+      "routeText", "timeBand", "congestion", "weeklyCount",
+      "currentMode", "currentMinutes",
+      "satisfaction", "expressIntent", "note",
     ].join(",");
     const rows = entries.map((e) => {
       return [
         e.id, e.createdAt,
-        `"${(e.fromText ?? "").replace(/"/g, '""')}"`,
-        `"${(e.toText ?? "").replace(/"/g, '""')}"`,
-        `"${e.timeBand}"`, e.weeklyCount, `"${e.currentMode}"`,
-        e.currentMinutes ?? "", e.satisfaction, e.expressIntent ?? "",
+        `"${(e.routeText ?? "").replace(/"/g, '""')}"`,
+        `"${e.timeBand}"`, e.congestion, e.weeklyCount,
+        `"${e.currentMode}"`, e.currentMinutes ?? "",
+        e.satisfaction, e.expressIntent ?? "",
         `"${(e.note ?? "").replace(/"/g, '""')}"`,
       ].join(",");
     });
@@ -202,10 +201,10 @@ export default function AdminPage() {
                 >
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-[var(--text-strong)] truncate">
-                      {e.fromText} → {e.toText}
+                      {e.routeText}
                     </p>
                     <p className="text-[var(--text-muted)] mt-0.5">
-                      {e.timeBand} · 주{e.weeklyCount}회 · {e.currentMode}
+                      {e.timeBand} · 혼잡 {e.congestion}/5 · 주{e.weeklyCount}회 · {e.currentMode}
                       {e.currentMinutes !== undefined && ` · ${e.currentMinutes}분`}
                     </p>
                     <p className="text-[var(--text-muted)] mt-0.5">
