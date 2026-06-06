@@ -3,34 +3,36 @@
 import { useState } from "react";
 import {
   BarChart3, Clock, Bus, Star, ThumbsUp, AlertTriangle,
-  Sparkles, Info, X, Users,
+  Sparkles, Info, X, Users, Repeat,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { useCommutes } from "@/lib/hooks/useCommutes";
 import {
-  aggregateRoutes,
-  timeBandDistribution, transportModeDistribution,
-  avgCongestion, avgSatisfaction, avgCurrentMinutes, avgExpressIntent,
-  pctHighIntent, pctHighCongestion,
+  timeBandDistribution, missedFreqDistribution,
+  avgCongestion, avgSatisfaction, avgTransfers,
+  avgExpressIntent, avgMissedScore,
+  pctHighIntent, pctHighCongestion, pctMissedBus, pctHasTransfer,
 } from "@/lib/algorithms/odAnalysis";
+import { MISSED_FREQS } from "@/lib/types";
 
 // ── 점수 산출 가중치 ──────────────────────────────────────────────
-const W_CONGESTION    = 0.30;
-const W_TIME          = 0.20;
-const W_INTENT        = 0.30;
-const W_UNSATISFACTION= 0.20;
-const TIME_CAP_MINUTES = 30;
+const W_CONGESTION = 0.30;
+const W_MISSED     = 0.30;
+const W_INTENT     = 0.25;
+const W_UNSAT      = 0.15;
 
-function calcNeedScore(conAvg: number, minAvg: number, intentAvg: number, satAvg: number): number {
+function calcNeedScore(
+  conAvg: number, missedAvg: number, intentAvg: number, satAvg: number,
+): number {
   const conComp    = conAvg > 0    ? (conAvg - 1) / 4 * 100 : 0;
-  const timeComp   = Math.min(minAvg / TIME_CAP_MINUTES, 1) * 100;
+  const missedComp = missedAvg; // 이미 0~100
   const intentComp = intentAvg > 0 ? (intentAvg - 1) / 4 * 100 : 0;
   const unsatComp  = satAvg > 0    ? (5 - satAvg) / 4 * 100   : 0;
   return Math.round(
     conComp    * W_CONGESTION +
-    timeComp   * W_TIME +
+    missedComp * W_MISSED +
     intentComp * W_INTENT +
-    unsatComp  * W_UNSATISFACTION
+    unsatComp  * W_UNSAT
   );
 }
 
@@ -38,34 +40,35 @@ export default function AnalysisPage() {
   const { entries, hydrated } = useCommutes();
   const [showFormula, setShowFormula] = useState(false);
 
-  const routes = aggregateRoutes(entries).slice(0, 8);
   const timeBands = timeBandDistribution(entries);
-  const modes = transportModeDistribution(entries);
+  const missedDist = missedFreqDistribution(entries);
 
   const conAvg     = avgCongestion(entries);
   const satAvg     = avgSatisfaction(entries);
-  const minAvg     = avgCurrentMinutes(entries);
+  const transAvg   = avgTransfers(entries);
   const intentAvg  = avgExpressIntent(entries);
+  const missedAvg  = avgMissedScore(entries);
   const highIntent = pctHighIntent(entries);
   const highCon    = pctHighCongestion(entries);
+  const missedPct  = pctMissedBus(entries);
+  const transferPct = pctHasTransfer(entries);
 
   const maxTimeCount = Math.max(...Object.values(timeBands), 1);
-  const maxModeCount = Math.max(...Object.values(modes), 1);
-  const maxRouteCount = routes[0]?.totalCount ?? 1;
+  const maxMissedCount = Math.max(...Object.values(missedDist), 1);
 
   const hasData = entries.length > 0;
-  const needScore = hasData ? calcNeedScore(conAvg, minAvg, intentAvg, satAvg) : 0;
+  const needScore = hasData ? calcNeedScore(conAvg, missedAvg, intentAvg, satAvg) : 0;
 
   return (
     <div className="flex flex-col gap-5">
       <div className="pt-2 pb-1">
         <p className="text-sm text-[var(--text-muted)] mb-1 flex items-center gap-1.5">
           <BarChart3 size={14} />
-          혼잡 분석
+          버스 혼잡 분석
         </p>
         <h1 className="text-2xl font-bold text-[var(--text-strong)] leading-tight">
           시민 경험으로 보는<br />
-          <span className="text-[var(--accent)]">출퇴근 혼잡 실태</span>
+          <span className="text-[var(--accent)]">출퇴근 버스 혼잡 실태</span>
         </h1>
       </div>
 
@@ -93,7 +96,7 @@ export default function AnalysisPage() {
             <span className="flex items-center justify-between gap-2">
               <span className="flex items-center gap-2">
                 <Sparkles size={16} className="text-[var(--accent)]" />
-                급행 셔틀 필요성 점수
+                급행 버스 필요성 점수
               </span>
               <button
                 onClick={() => setShowFormula(true)}
@@ -127,7 +130,7 @@ export default function AnalysisPage() {
               </div>
               <p className="text-xs text-[var(--text-muted)] leading-relaxed text-center">
                 {needScore >= 70 ? (
-                  <><strong className="text-rose-600 dark:text-rose-400">매우 높음</strong> — 급행 셔틀 도입 시 즉각적인 효과 예상</>
+                  <><strong className="text-rose-600 dark:text-rose-400">매우 높음</strong> — 급행 버스 도입 시 즉각적인 효과 예상</>
                 ) : needScore >= 50 ? (
                   <><strong className="text-orange-600 dark:text-orange-400">높음</strong> — 도입 검토 필요</>
                 ) : needScore >= 30 ? (
@@ -138,8 +141,8 @@ export default function AnalysisPage() {
               </p>
               <div className="grid grid-cols-4 gap-2 mt-4 text-center">
                 <MiniStat label="혼잡도" value={`${conAvg.toFixed(1)}/5`} highlight />
-                <MiniStat label="평균 시간" value={`${minAvg.toFixed(0)}분`} />
-                <MiniStat label="만족도" value={`${satAvg.toFixed(1)}/5`} />
+                <MiniStat label="만차경험" value={`${missedPct.toFixed(0)}%`} />
+                <MiniStat label="평균 환승" value={`${transAvg.toFixed(1)}회`} />
                 <MiniStat label="이용 의향" value={`${intentAvg.toFixed(1)}/5`} />
               </div>
             </>
@@ -160,77 +163,60 @@ export default function AnalysisPage() {
           </CardHeader>
           <CardContent className="flex flex-col gap-2.5">
             <EvidenceRow
-              num="01" title="혼잡도"
+              num="01" title="혼잡 심각"
               value={`${highCon.toFixed(0)}%`}
-              desc={`응답자 중 ${highCon.toFixed(0)}%가 자주 이용하는 노선이 "만원 이상" (4~5점)이라고 답변`}
+              desc={`응답자 중 ${highCon.toFixed(0)}%가 출퇴근 버스가 "만원 이상"(4~5점)이라고 답변`}
               highlight
             />
             <EvidenceRow
-              num="02" title="가장 혼잡한 노선"
-              value={routes[0] ? `${routes[0].avgCongestion.toFixed(1)}/5` : "—"}
-              desc={routes[0]
-                ? `"${routes[0].routeText}" — 응답자 ${routes[0].responseCount}명, 주 ${routes[0].totalCount}회 이용`
-                : "데이터 부족"}
+              num="02" title="만차로 못 탄 경험"
+              value={`${missedPct.toFixed(0)}%`}
+              desc={`응답자 중 ${missedPct.toFixed(0)}%가 버스가 만원이라 못 타거나 그냥 보낸 경험이 있다고 답변`}
+              highlight
             />
             <EvidenceRow
-              num="03" title="소요 시간"
-              value={`평균 ${minAvg.toFixed(0)}분`}
-              desc="응답자가 측정한 평균 통근 시간"
+              num="03" title="환승 부담"
+              value={`평균 ${transAvg.toFixed(1)}회`}
+              desc={`응답자 편도 평균 ${transAvg.toFixed(1)}회 환승 · 환승 경험자 ${transferPct.toFixed(0)}%`}
             />
             <EvidenceRow
-              num="04" title="이용 의향"
+              num="04" title="급행 이용 의향"
               value={`${highIntent.toFixed(0)}%`}
-              desc={`응답자 중 ${highIntent.toFixed(0)}%가 급행 셔틀 도입 시 "꼭 쓰겠다" 또는 "쓸 것 같다"고 답변`}
+              desc={`응답자 중 ${highIntent.toFixed(0)}%가 급행 버스 도입 시 "꼭 쓰겠다" 또는 "쓸 것 같다"고 답변`}
             />
           </CardContent>
         </Card>
       )}
 
-      {/* 노선/구간별 혼잡 랭킹 */}
+      {/* 만차 경험 분포 */}
       <Card>
         <CardHeader>
           <CardTitle>
             <span className="flex items-center gap-2">
-              <Users size={16} className="text-[var(--accent)]" />
-              가장 만원인 노선/구간 (수요 순)
+              <AlertTriangle size={16} className="text-rose-500" />
+              만차로 못 탄 경험 빈도
             </span>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {routes.length === 0 ? (
+          {!hasData ? (
             <p className="text-sm text-[var(--text-muted)] text-center py-6">데이터 부족</p>
           ) : (
-            <div className="flex flex-col gap-3">
-              {routes.map((r, i) => {
-                const widthPct = (r.totalCount / maxRouteCount) * 100;
-                const conColor = ["#22c55e", "#84cc16", "#eab308", "#f97316", "#ef4444"][Math.round(r.avgCongestion) - 1] ?? "#9ca3af";
+            <div className="flex flex-col gap-1.5">
+              {MISSED_FREQS.map((f) => {
+                const count = missedDist[f];
+                const pct = (count / maxMissedCount) * 100;
+                const isBad = f !== "없음";
                 return (
-                  <div key={r.routeText} className="flex flex-col gap-1.5">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-[var(--text-muted)] font-mono w-5 shrink-0">{i + 1}.</span>
-                      <span className="flex-1 text-[13px] text-[var(--text-strong)] font-semibold truncate">
-                        {r.routeText}
-                      </span>
-                      <span className="text-[var(--text-muted)] tabular-nums shrink-0">
-                        {r.totalCount}회/주
-                      </span>
+                  <div key={f} className="flex items-center gap-2 text-xs">
+                    <span className={`w-20 shrink-0 ${isBad ? "font-bold text-[var(--text-strong)]" : "text-[var(--text-base)]"}`}>
+                      {f}
+                    </span>
+                    <div className="flex-1 h-2.5 rounded-full bg-[var(--bg-soft)] overflow-hidden">
+                      <div className={`h-full rounded-full ${isBad ? "bg-rose-400" : "bg-emerald-400"}`}
+                        style={{ width: `${pct}%` }} />
                     </div>
-                    <div className="flex items-center gap-2 ml-7">
-                      <div className="flex-1 h-2 rounded-full bg-[var(--bg-soft)] overflow-hidden">
-                        <div className="h-full bg-[var(--accent)] rounded-full" style={{ width: `${widthPct}%` }} />
-                      </div>
-                      <span
-                        className="text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0"
-                        style={{ background: `${conColor}22`, color: conColor }}
-                      >
-                        혼잡 {r.avgCongestion.toFixed(1)}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3 text-[10px] text-[var(--text-muted)] ml-7">
-                      <span>응답 {r.responseCount}명</span>
-                      {r.avgCurrentMinutes > 0 && <span>⏱ {r.avgCurrentMinutes.toFixed(0)}분</span>}
-                      {r.avgExpressIntent > 0 && <span>👍 의향 {r.avgExpressIntent.toFixed(1)}/5</span>}
-                    </div>
+                    <span className="text-[var(--text-muted)] tabular-nums w-10 text-right">{count}</span>
                   </div>
                 );
               })}
@@ -245,7 +231,7 @@ export default function AnalysisPage() {
           <CardTitle>
             <span className="flex items-center gap-2">
               <Clock size={16} className="text-[var(--accent)]" />
-              시간대별 응답 분포
+              혼잡 집중 시간대
             </span>
           </CardTitle>
         </CardHeader>
@@ -271,47 +257,35 @@ export default function AnalysisPage() {
         </CardContent>
       </Card>
 
-      {/* 교통수단 */}
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            <span className="flex items-center gap-2">
-              <Bus size={16} className="text-[var(--accent)]" />
-              현재 사용하는 교통수단
-            </span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {!hasData ? (
-            <p className="text-sm text-[var(--text-muted)] text-center py-6">데이터 부족</p>
-          ) : (
-            <div className="flex flex-col gap-1.5">
-              {(Object.entries(modes) as [string, number][])
-                .filter(([, c]) => c > 0)
-                .sort((a, b) => b[1] - a[1])
-                .map(([m, count]) => {
-                  const pct = (count / maxModeCount) * 100;
-                  return (
-                    <div key={m} className="flex items-center gap-2 text-xs">
-                      <span className="w-20 shrink-0 font-semibold text-[var(--text-base)]">{m}</span>
-                      <div className="flex-1 h-2.5 rounded-full bg-[var(--bg-soft)] overflow-hidden">
-                        <div className="h-full rounded-full bg-[var(--accent)]" style={{ width: `${pct}%` }} />
-                      </div>
-                      <span className="text-[var(--text-muted)] tabular-nums w-10 text-right">{count}</span>
-                    </div>
-                  );
-                })}
+      {/* 환승 부담 요약 */}
+      {hasData && (
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              <span className="flex items-center gap-2">
+                <Repeat size={16} className="text-[var(--accent)]" />
+                환승 부담
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-3 text-center">
+              <MiniStat label="평균 환승 횟수" value={`${transAvg.toFixed(1)}회`} highlight />
+              <MiniStat label="환승 경험자 비율" value={`${transferPct.toFixed(0)}%`} />
             </div>
-          )}
-        </CardContent>
-      </Card>
+            <p className="text-[11px] text-[var(--text-muted)] mt-3 leading-relaxed text-center">
+              급행 버스는 주요 거점을 직결해 환승 횟수를 줄일 수 있습니다.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* 결론 */}
       <Card>
         <CardContent className="flex flex-col gap-2 py-5">
           <p className="text-sm text-[var(--text-base)] leading-relaxed">
             <ThumbsUp className="inline-block mr-1 text-[var(--accent)]" size={14} />
-            <strong className="text-[var(--text-strong)]">결론:</strong> 위 데이터를 바탕으로 만원이 가장 심한 노선들의 급행 셔틀 도입을 안양시청에 제안할 수 있습니다.
+            <strong className="text-[var(--text-strong)]">결론:</strong> 위 데이터를 바탕으로 출퇴근 버스 혼잡 완화를 위한 급행 버스 도입을 안양시청에 제안할 수 있습니다.
           </p>
         </CardContent>
       </Card>
@@ -334,8 +308,8 @@ function FormulaModal({ onClose }: { onClose: () => void }) {
         </div>
 
         <p className="text-xs text-[var(--text-muted)] leading-relaxed mb-4">
-          네 가지 데이터를 0~100점 척도로 정규화한 후, 가중치를 곱해 평균낸 값입니다.
-          가장 직접적인 증거인 <strong>혼잡도</strong>와 정책 결정자에게 강력한 신호인 <strong>이용 의향</strong>에 가장 큰 가중치를 부여합니다.
+          네 가지 데이터를 0~100점 척도로 정규화한 후, 가중치를 곱해 합산한 값입니다.
+          가장 직접적인 증거인 <strong>혼잡도·만차 경험·이용 의향</strong>에 큰 가중치를 부여합니다.
         </p>
 
         <div className="flex flex-col gap-3 text-xs">
@@ -346,19 +320,19 @@ function FormulaModal({ onClose }: { onClose: () => void }) {
             color="#ef4444"
           />
           <FormulaRow
-            label="② 시간 부담 (20%)"
-            formula="min(평균 소요 시간, 30) ÷ 30 × 100"
-            example="30분 이상이면 100점 (상한)"
-            color="#06b6d4"
+            label="② 만차 경험 (30%)"
+            formula="없음 0 · 가끔 33 · 주1~2회 67 · 거의매일 100 의 평균"
+            example="만차 경험이 잦을수록 100점에 가까움"
+            color="#e11d48"
           />
           <FormulaRow
-            label="③ 이용 의향 (30%)"
+            label="③ 이용 의향 (25%)"
             formula="(평균 의향 − 1) ÷ 4 × 100"
             example="의향 5점이면 100점, 1점이면 0점"
             color="#a855f7"
           />
           <FormulaRow
-            label="④ 불만족도 (20%)"
+            label="④ 불만족도 (15%)"
             formula="(5 − 평균 만족도) ÷ 4 × 100"
             example="만족도 1점이면 100점, 5점이면 0점"
             color="#f97316"
@@ -368,18 +342,14 @@ function FormulaModal({ onClose }: { onClose: () => void }) {
         <div className="bg-[var(--accent-soft)] rounded-xl px-3 py-3 mt-4">
           <p className="text-xs font-bold text-[var(--accent-text)] mb-1">최종 점수</p>
           <p className="text-[11px] font-mono text-[var(--accent-text)] leading-relaxed">
-            점수 = ①×0.30 + ②×0.20 + ③×0.30 + ④×0.20
+            점수 = ①×0.30 + ②×0.30 + ③×0.25 + ④×0.15
           </p>
         </div>
 
         <div className="mt-4 text-[11px] text-[var(--text-muted)] leading-relaxed space-y-2">
           <p>
-            <strong className="text-[var(--text-base)]">왜 혼잡도와 의향이 각각 30%?</strong>{" "}
-            혼잡도 = 시민이 직접 겪는 문제 강도. 의향 = &ldquo;만들면 정말 쓰겠다&rdquo; 라는 가장 강력한 정책 신호. 둘이 한 쌍으로 60%.
-          </p>
-          <p>
-            <strong className="text-[var(--text-base)]">왜 시간은 30분이 상한?</strong>{" "}
-            동안구 셔틀의 합리적 거리(5~10km) 기준 30분 이상이면 명백한 개선 여지가 있다고 판단.
+            <strong className="text-[var(--text-base)]">왜 혼잡도·만차·의향에 가중치를?</strong>{" "}
+            혼잡도·만차 경험 = 시민이 직접 겪는 문제 강도. 의향 = &ldquo;만들면 정말 쓰겠다&rdquo; 라는 가장 강력한 정책 신호.
           </p>
           <p><strong className="text-[var(--text-base)]">점수 해석</strong></p>
           <ul className="ml-4 list-disc space-y-0.5">

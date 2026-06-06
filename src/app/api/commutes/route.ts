@@ -1,16 +1,12 @@
 import { NextResponse } from "next/server";
 import { commutesStore } from "@/lib/server/commutesDb";
-import { normalizeText } from "@/lib/types";
-import type { CommuteEntry, TimeBand, TransportMode } from "@/lib/types";
+import { MISSED_FREQS } from "@/lib/types";
+import type { CommuteEntry, TimeBand, MissedFreq } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 const TIME_BANDS: TimeBand[] = [
   "출근(06~09)", "퇴근(17~21)", "학원 하원(21~23)", "기타 시간",
-];
-const MODES: TransportMode[] = [
-  "버스", "지하철", "도보", "자전거",
-  "자동차", "헬리콥터", "비행기", "기타",
 ];
 
 export async function GET() {
@@ -26,51 +22,37 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    const routeText = typeof body.routeText === "string" ? normalizeText(body.routeText) : "";
-    if (routeText.length > 80) return NextResponse.json({ error: "노선/구간은 80자 이하" }, { status: 400 });
-    // 버스 선택 시에만 필수
-    if (body.currentMode === "버스" && !routeText) {
-      return NextResponse.json({ error: "버스 선택 시 노선/구간 입력 필수" }, { status: 400 });
-    }
-
     if (!TIME_BANDS.includes(body.timeBand)) {
       return NextResponse.json({ error: "잘못된 timeBand" }, { status: 400 });
-    }
-    if (typeof body.congestion !== "number" || body.congestion < 1 || body.congestion > 5) {
-      return NextResponse.json({ error: "혼잡도는 1~5" }, { status: 400 });
     }
     if (typeof body.weeklyCount !== "number" || body.weeklyCount < 1 || body.weeklyCount > 14) {
       return NextResponse.json({ error: "weeklyCount 범위 오류" }, { status: 400 });
     }
-    if (!MODES.includes(body.currentMode)) {
-      return NextResponse.json({ error: "잘못된 currentMode" }, { status: 400 });
+    if (![0, 1, 2, 3].includes(body.transfers)) {
+      return NextResponse.json({ error: "transfers 범위 오류 (0~3)" }, { status: 400 });
+    }
+    if (typeof body.congestion !== "number" || body.congestion < 1 || body.congestion > 5) {
+      return NextResponse.json({ error: "혼잡도는 1~5" }, { status: 400 });
+    }
+    if (!MISSED_FREQS.includes(body.missedBusFreq)) {
+      return NextResponse.json({ error: "잘못된 missedBusFreq" }, { status: 400 });
     }
     if (typeof body.satisfaction !== "number" || body.satisfaction < 1 || body.satisfaction > 5) {
       return NextResponse.json({ error: "satisfaction 범위 오류" }, { status: 400 });
     }
-    if (
-      body.currentMinutes !== undefined &&
-      (typeof body.currentMinutes !== "number" || body.currentMinutes < 0 || body.currentMinutes > 240)
-    ) {
-      return NextResponse.json({ error: "currentMinutes 범위 오류" }, { status: 400 });
-    }
-    if (
-      body.expressIntent !== undefined &&
-      (typeof body.expressIntent !== "number" || body.expressIntent < 1 || body.expressIntent > 5)
-    ) {
+    if (typeof body.expressIntent !== "number" || body.expressIntent < 1 || body.expressIntent > 5) {
       return NextResponse.json({ error: "expressIntent 범위 오류" }, { status: 400 });
     }
 
     const entry: CommuteEntry = {
       id: crypto.randomUUID(),
-      routeText,
       timeBand: body.timeBand,
-      congestion: body.congestion as 1 | 2 | 3 | 4 | 5,
       weeklyCount: body.weeklyCount,
-      currentMode: body.currentMode,
-      currentMinutes: typeof body.currentMinutes === "number" ? body.currentMinutes : undefined,
+      transfers: body.transfers as 0 | 1 | 2 | 3,
+      congestion: body.congestion as 1 | 2 | 3 | 4 | 5,
+      missedBusFreq: body.missedBusFreq as MissedFreq,
       satisfaction: body.satisfaction as 1 | 2 | 3 | 4 | 5,
-      expressIntent: typeof body.expressIntent === "number" ? (body.expressIntent as 1 | 2 | 3 | 4 | 5) : undefined,
+      expressIntent: body.expressIntent as 1 | 2 | 3 | 4 | 5,
       note: typeof body.note === "string" && body.note.trim() ? body.note.slice(0, 200) : undefined,
       createdAt: new Date().toISOString(),
     };

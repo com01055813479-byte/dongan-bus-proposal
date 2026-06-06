@@ -26,16 +26,15 @@ export default function AdminPage() {
   function exportCSV() {
     const header = [
       "id", "createdAt",
-      "routeText", "timeBand", "congestion", "weeklyCount",
-      "currentMode", "currentMinutes",
+      "timeBand", "weeklyCount", "transfers",
+      "congestion", "missedBusFreq",
       "satisfaction", "expressIntent", "note",
     ].join(",");
     const rows = entries.map((e) => {
       return [
         e.id, e.createdAt,
-        `"${(e.routeText ?? "").replace(/"/g, '""')}"`,
-        `"${e.timeBand}"`, e.congestion, e.weeklyCount,
-        `"${e.currentMode}"`, e.currentMinutes ?? "",
+        `"${e.timeBand}"`, e.weeklyCount, e.transfers ?? "",
+        e.congestion, `"${e.missedBusFreq ?? ""}"`,
         e.satisfaction, e.expressIntent ?? "",
         `"${(e.note ?? "").replace(/"/g, '""')}"`,
       ].join(",");
@@ -200,12 +199,11 @@ export default function AdminPage() {
                   className="rounded-xl px-3 py-2.5 bg-[var(--bg-soft)] flex items-start gap-2 text-xs"
                 >
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-[var(--text-strong)] truncate">
-                      {e.routeText || <span className="italic text-[var(--text-muted)]">(노선 미입력)</span>}
+                    <p className="font-semibold text-[var(--text-strong)]">
+                      {e.timeBand} · 혼잡 {e.congestion}/5
                     </p>
                     <p className="text-[var(--text-muted)] mt-0.5">
-                      {e.timeBand} · 혼잡 {e.congestion}/5 · 주{e.weeklyCount}회 · {e.currentMode}
-                      {e.currentMinutes !== undefined && ` · ${e.currentMinutes}분`}
+                      주{e.weeklyCount}회 · 환승 {e.transfers ?? "—"}회 · 만차 {e.missedBusFreq ?? "—"}
                     </p>
                     <p className="text-[var(--text-muted)] mt-0.5">
                       만족도 {e.satisfaction}/5
