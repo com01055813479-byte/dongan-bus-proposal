@@ -342,7 +342,7 @@ function FormulaModal({ onClose }: { onClose: () => void }) {
           />
           <FormulaRow
             label="② 만차 경험 (30%)"
-            formula="없음 0 · 가끔 33 · 주1~2회 67 · 흔함 100 의 평균"
+            formula="없음 0 · 가끔 33 · 보통 67 · 흔함 100 의 평균"
             example="만차 경험이 잦을수록 100점에 가까움"
             color="#e11d48"
           />

@@ -18,7 +18,7 @@ export function timeBandDistribution(entries: CommuteEntry[]): Record<TimeBand, 
 /** 만차 경험 빈도 분포 (응답자 수) */
 export function missedFreqDistribution(entries: CommuteEntry[]): Record<MissedFreq, number> {
   const out: Record<MissedFreq, number> = {
-    "없음": 0, "가끔": 0, "주 1~2회": 0, "흔함": 0,
+    "없음": 0, "가끔": 0, "보통": 0, "흔함": 0,
   };
   for (const e of entries) {
     if (e.missedBusFreq && MISSED_FREQS.includes(e.missedBusFreq)) out[e.missedBusFreq] += 1;

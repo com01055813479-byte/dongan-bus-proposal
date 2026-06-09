@@ -29,10 +29,10 @@ export type TimeBand =
 export type MissedFreq =
   | "없음"
   | "가끔"
-  | "주 1~2회"
+  | "보통"
   | "흔함";
 
-export const MISSED_FREQS: MissedFreq[] = ["없음", "가끔", "주 1~2회", "흔함"];
+export const MISSED_FREQS: MissedFreq[] = ["없음", "가끔", "보통", "흔함"];
 
 export type TransitMethod =
   | "버스"
@@ -55,7 +55,7 @@ export function missedFreqScore(f: MissedFreq): number {
   switch (f) {
     case "없음": return 0;
     case "가끔": return 33;
-    case "주 1~2회": return 67;
+    case "보통": return 67;
     case "흔함": return 100;
   }
 }

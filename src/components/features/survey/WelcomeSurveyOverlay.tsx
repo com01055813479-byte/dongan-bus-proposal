@@ -8,7 +8,7 @@ import type { TimeBand, MissedFreq, TransitMethod } from "@/lib/types";
 import { MISSED_FREQS, TRANSIT_METHODS } from "@/lib/types";
 import { cn } from "@/lib/utils/cn";
 
-const COMPLETED_KEY = "survey-completed-v15";
+const COMPLETED_KEY = "survey-completed-v16";
 const BYPASS_PATHS = ["/admin", "/settings"];
 
 const TIME_BANDS: TimeBand[] = [
