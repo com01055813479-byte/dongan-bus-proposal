@@ -25,7 +25,7 @@ export async function POST(req: Request) {
     if (!TIME_BANDS.includes(body.timeBand)) {
       return NextResponse.json({ error: "잘못된 timeBand" }, { status: 400 });
     }
-    if (typeof body.weeklyCount !== "number" || body.weeklyCount < 1 || body.weeklyCount > 14) {
+    if (typeof body.weeklyCount !== "number" || body.weeklyCount < 0 || body.weeklyCount > 14) {
       return NextResponse.json({ error: "weeklyCount 범위 오류" }, { status: 400 });
     }
     if (!TRANSIT_METHODS.includes(body.transitMethod)) {

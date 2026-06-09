@@ -8,7 +8,7 @@ import type { TimeBand, MissedFreq, TransitMethod } from "@/lib/types";
 import { MISSED_FREQS, TRANSIT_METHODS } from "@/lib/types";
 import { cn } from "@/lib/utils/cn";
 
-const COMPLETED_KEY = "survey-completed-v13";
+const COMPLETED_KEY = "survey-completed-v14";
 const BYPASS_PATHS = ["/admin", "/settings"];
 
 const TIME_BANDS: TimeBand[] = [
@@ -17,10 +17,10 @@ const TIME_BANDS: TimeBand[] = [
 
 /** 주간 이용 횟수 — 대표값으로 매핑 (분석 평균 유지용) */
 const FREQUENCY_OPTIONS: { label: string; value: number }[] = [
+  { label: "안 탐", value: 0 },
   { label: "주 1~2회", value: 2 },
   { label: "주 3~4회", value: 4 },
-  { label: "주 5~6회", value: 6 },
-  { label: "거의 매일", value: 10 },
+  { label: "주 5~7회", value: 6 },
 ];
 
 /** 버스 혼잡도 1~5 라벨 */
