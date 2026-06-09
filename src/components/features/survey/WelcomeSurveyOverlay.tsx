@@ -8,7 +8,7 @@ import type { TimeBand, MissedFreq, TransitMethod } from "@/lib/types";
 import { MISSED_FREQS, TRANSIT_METHODS } from "@/lib/types";
 import { cn } from "@/lib/utils/cn";
 
-const COMPLETED_KEY = "survey-completed-v11";
+const COMPLETED_KEY = "survey-completed-v12";
 const BYPASS_PATHS = ["/admin", "/settings"];
 
 const TIME_BANDS: TimeBand[] = [
@@ -38,7 +38,7 @@ export function WelcomeSurveyOverlay() {
 
   const [timeBand, setTimeBand] = useState<TimeBand>("출근(06~09)");
   const [weeklyCount, setWeeklyCount] = useState(4);
-  const [transitMethod, setTransitMethod] = useState<TransitMethod>("버스(직행)");
+  const [transitMethod, setTransitMethod] = useState<TransitMethod>("버스");
   const [congestion, setCongestion] = useState<1 | 2 | 3 | 4 | 5>(3);
   const [missedBusFreq, setMissedBusFreq] = useState<MissedFreq>("없음");
   const [satisfaction, setSatisfaction] = useState<1 | 2 | 3 | 4 | 5>(3);

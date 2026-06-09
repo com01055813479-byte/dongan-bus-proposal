@@ -35,20 +35,19 @@ export type MissedFreq =
 export const MISSED_FREQS: MissedFreq[] = ["없음", "가끔", "주 1~2회", "거의 매일"];
 
 export type TransitMethod =
-  | "버스(직행)"
-  | "버스(환승)"
-  | "도보+버스"
+  | "버스"
   | "가족 차량 픽업"
   | "택시"
-  | "자가용/기타";
+  | "자가용"
+  | "기타";
 
 export const TRANSIT_METHODS: TransitMethod[] = [
-  "버스(직행)", "버스(환승)", "도보+버스", "가족 차량 픽업", "택시", "자가용/기타",
+  "버스", "가족 차량 픽업", "택시", "자가용", "기타",
 ];
 
 /** 직행 버스 부재로 차량(가족 픽업·택시·자가용)에 의존하는 수단인지 */
 export function isCarDependent(m: TransitMethod): boolean {
-  return m === "가족 차량 픽업" || m === "택시" || m === "자가용/기타";
+  return m === "가족 차량 픽업" || m === "택시" || m === "자가용";
 }
 
 /** 만차 경험 빈도 → 0~100 점수 (분석용) */
