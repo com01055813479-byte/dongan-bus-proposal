@@ -8,7 +8,7 @@ import type { TimeBand, MissedFreq, TransitMethod } from "@/lib/types";
 import { MISSED_FREQS, TRANSIT_METHODS } from "@/lib/types";
 import { cn } from "@/lib/utils/cn";
 
-const COMPLETED_KEY = "survey-completed-v14";
+const COMPLETED_KEY = "survey-completed-v15";
 const BYPASS_PATHS = ["/admin", "/settings"];
 
 const TIME_BANDS: TimeBand[] = [
@@ -218,6 +218,8 @@ export function WelcomeSurveyOverlay() {
                 <span className="text-[var(--text-muted)]">
                   정류장이 줄어 <strong>조금 더 걸어야 해도, 시간이 단축</strong>된다면?
                   (예: <strong className="text-[var(--accent-text)]">평촌학원가 → 범계역</strong> 직행)
+                  <br />
+                  또 급행 버스로 <strong>사람이 분산되어 모든 버스의 혼잡함이 줄어듭니다.</strong>
                 </span>
               </div>
               <StarRow value={expressIntent} onChange={setExpressIntent} />
