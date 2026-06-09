@@ -133,21 +133,10 @@ export function WelcomeSurveyOverlay() {
             </p>
           </div>
 
-          {/* 친구들에게 보내는 메시지 */}
-          <div
-            className="rounded-2xl px-4 py-3 border-2 border-dashed"
-            style={{
-              borderColor: "var(--accent)",
-              backgroundColor: "var(--accent-soft)",
-            }}
-          >
-            <p className="text-sm leading-relaxed text-[var(--accent-text)]">
-              이거 내가 <strong>열심히</strong> 만들었는데 설문 귀찮아서 안하지 말고 좀 해주세요 🙏
-            </p>
-            <p className="text-xs text-[var(--accent-text)] opacity-75 text-right mt-1.5 font-semibold">
-              — 조은규가
-            </p>
-          </div>
+          {/* 발표용 안내 */}
+          <p className="text-[11px] text-[var(--text-muted)]">
+            인덕원고 발표용 설문
+          </p>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <FormBlock label="주로 버스가 혼잡한 시간대">
