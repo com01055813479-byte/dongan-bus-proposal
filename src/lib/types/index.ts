@@ -6,6 +6,8 @@ export interface CommuteEntry {
   timeBand: TimeBand;
   /** 일주일 평균 버스 이용 횟수 (왕복 1회 = 2회) */
   weeklyCount: number;
+  /** 학원가↔역을 현재 주로 어떻게 이동하는지 */
+  transitMethod: TransitMethod;
   /** 출퇴근 시간 체감 혼잡도 (1=한산, 5=극도로 만원) */
   congestion: 1 | 2 | 3 | 4 | 5;
   /** 만차로 못 타거나 그냥 보낸 경험 빈도 */
@@ -31,6 +33,23 @@ export type MissedFreq =
   | "거의 매일";
 
 export const MISSED_FREQS: MissedFreq[] = ["없음", "가끔", "주 1~2회", "거의 매일"];
+
+export type TransitMethod =
+  | "버스(직행)"
+  | "버스(환승)"
+  | "도보+버스"
+  | "가족 차량 픽업"
+  | "택시"
+  | "자가용/기타";
+
+export const TRANSIT_METHODS: TransitMethod[] = [
+  "버스(직행)", "버스(환승)", "도보+버스", "가족 차량 픽업", "택시", "자가용/기타",
+];
+
+/** 직행 버스 부재로 차량(가족 픽업·택시·자가용)에 의존하는 수단인지 */
+export function isCarDependent(m: TransitMethod): boolean {
+  return m === "가족 차량 픽업" || m === "택시" || m === "자가용/기타";
+}
 
 /** 만차 경험 빈도 → 0~100 점수 (분석용) */
 export function missedFreqScore(f: MissedFreq): number {

@@ -3,17 +3,17 @@
 import { useState } from "react";
 import {
   BarChart3, Clock, Bus, Star, ThumbsUp, AlertTriangle,
-  Sparkles, Info, X, Users,
+  Sparkles, Info, X, Users, Car,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { useCommutes } from "@/lib/hooks/useCommutes";
 import {
-  timeBandDistribution, missedFreqDistribution,
+  timeBandDistribution, missedFreqDistribution, transitMethodDistribution,
   avgCongestion, avgSatisfaction,
   avgExpressIntent, avgMissedScore,
-  pctHighIntent, pctHighCongestion, pctMissedBus,
+  pctHighIntent, pctHighCongestion, pctMissedBus, pctCarDependent,
 } from "@/lib/algorithms/odAnalysis";
-import { MISSED_FREQS } from "@/lib/types";
+import { MISSED_FREQS, TRANSIT_METHODS, isCarDependent } from "@/lib/types";
 
 // ── 점수 산출 가중치 ──────────────────────────────────────────────
 const W_CONGESTION = 0.30;
@@ -42,6 +42,7 @@ export default function AnalysisPage() {
 
   const timeBands = timeBandDistribution(entries);
   const missedDist = missedFreqDistribution(entries);
+  const methodDist = transitMethodDistribution(entries);
 
   const conAvg     = avgCongestion(entries);
   const satAvg     = avgSatisfaction(entries);
@@ -50,9 +51,11 @@ export default function AnalysisPage() {
   const highIntent = pctHighIntent(entries);
   const highCon    = pctHighCongestion(entries);
   const missedPct  = pctMissedBus(entries);
+  const carPct     = pctCarDependent(entries);
 
   const maxTimeCount = Math.max(...Object.values(timeBands), 1);
   const maxMissedCount = Math.max(...Object.values(missedDist), 1);
+  const maxMethodCount = Math.max(...Object.values(methodDist), 1);
 
   const hasData = entries.length > 0;
   const needScore = hasData ? calcNeedScore(conAvg, missedAvg, intentAvg, satAvg) : 0;
@@ -173,7 +176,13 @@ export default function AnalysisPage() {
               highlight
             />
             <EvidenceRow
-              num="03" title="급행 이용 의향"
+              num="03" title="직행 부재 → 차량 의존"
+              value={`${carPct.toFixed(0)}%`}
+              desc={`응답자 중 ${carPct.toFixed(0)}%가 직행 버스가 없어 가족 차량·택시·자가용에 의존`}
+              highlight
+            />
+            <EvidenceRow
+              num="04" title="급행 이용 의향"
               value={`${highIntent.toFixed(0)}%`}
               desc={`응답자 중 ${highIntent.toFixed(0)}%가 급행 버스 도입 시 "꼭 쓰겠다" 또는 "쓸 것 같다"고 답변`}
             />
@@ -214,6 +223,48 @@ export default function AnalysisPage() {
                 );
               })}
             </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* 이동 수단 분포 */}
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            <span className="flex items-center gap-2">
+              <Car size={16} className="text-[var(--accent)]" />
+              학원가 ↔ 역 이동 수단
+            </span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {!hasData ? (
+            <p className="text-sm text-[var(--text-muted)] text-center py-6">데이터 부족</p>
+          ) : (
+            <>
+              <div className="flex flex-col gap-1.5">
+                {TRANSIT_METHODS.map((m) => {
+                  const count = methodDist[m];
+                  const pct = (count / maxMethodCount) * 100;
+                  const car = isCarDependent(m);
+                  return (
+                    <div key={m} className="flex items-center gap-2 text-xs">
+                      <span className={`w-24 shrink-0 ${car ? "font-bold text-[var(--text-strong)]" : "text-[var(--text-base)]"}`}>
+                        {m}
+                      </span>
+                      <div className="flex-1 h-2.5 rounded-full bg-[var(--bg-soft)] overflow-hidden">
+                        <div className={`h-full rounded-full ${car ? "bg-rose-400" : "bg-[var(--accent)]"}`}
+                          style={{ width: `${pct}%` }} />
+                      </div>
+                      <span className="text-[var(--text-muted)] tabular-nums w-10 text-right">{count}</span>
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="text-[11px] text-[var(--text-muted)] mt-3 leading-relaxed text-center">
+                직행 버스가 없어 <strong className="text-rose-500">{carPct.toFixed(0)}%</strong>가 가족 차량·택시·자가용에 의존합니다.
+              </p>
+            </>
           )}
         </CardContent>
       </Card>

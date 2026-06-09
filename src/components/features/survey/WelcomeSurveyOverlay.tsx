@@ -4,11 +4,11 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Bus, ArrowRight, Star, CheckCircle2, Users } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import type { TimeBand, MissedFreq } from "@/lib/types";
-import { MISSED_FREQS } from "@/lib/types";
+import type { TimeBand, MissedFreq, TransitMethod } from "@/lib/types";
+import { MISSED_FREQS, TRANSIT_METHODS } from "@/lib/types";
 import { cn } from "@/lib/utils/cn";
 
-const COMPLETED_KEY = "survey-completed-v10";
+const COMPLETED_KEY = "survey-completed-v11";
 const BYPASS_PATHS = ["/admin", "/settings"];
 
 const TIME_BANDS: TimeBand[] = [
@@ -38,6 +38,7 @@ export function WelcomeSurveyOverlay() {
 
   const [timeBand, setTimeBand] = useState<TimeBand>("출근(06~09)");
   const [weeklyCount, setWeeklyCount] = useState(4);
+  const [transitMethod, setTransitMethod] = useState<TransitMethod>("버스(직행)");
   const [congestion, setCongestion] = useState<1 | 2 | 3 | 4 | 5>(3);
   const [missedBusFreq, setMissedBusFreq] = useState<MissedFreq>("없음");
   const [satisfaction, setSatisfaction] = useState<1 | 2 | 3 | 4 | 5>(3);
@@ -69,7 +70,7 @@ export function WelcomeSurveyOverlay() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          timeBand, weeklyCount,
+          timeBand, weeklyCount, transitMethod,
           congestion, missedBusFreq,
           satisfaction, expressIntent,
           note: note || undefined,
@@ -158,6 +159,22 @@ export function WelcomeSurveyOverlay() {
                         : "bg-[var(--bg-soft)] hover:bg-[var(--border)] text-[var(--text-base)]"
                     )}>
                     {opt.label}
+                  </button>
+                ))}
+              </div>
+            </FormBlock>
+
+            <FormBlock label="학원가 ↔ 역, 주로 어떻게 이동하세요?">
+              <div className="grid grid-cols-3 gap-1.5">
+                {TRANSIT_METHODS.map((m) => (
+                  <button key={m} type="button" onClick={() => setTransitMethod(m)}
+                    className={cn(
+                      "px-1 py-2 rounded-lg text-[11px] font-semibold transition-colors",
+                      transitMethod === m
+                        ? "bg-[var(--accent)] text-white"
+                        : "bg-[var(--bg-soft)] hover:bg-[var(--border)] text-[var(--text-base)]"
+                    )}>
+                    {m}
                   </button>
                 ))}
               </div>

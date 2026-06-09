@@ -3,8 +3,8 @@
  * "버스가 얼마나 오래 걸리고, 얼마나 만원이고, 급행 수요가 있는가" 에 집중.
  */
 
-import type { CommuteEntry, TimeBand, MissedFreq } from "@/lib/types";
-import { MISSED_FREQS, missedFreqScore } from "@/lib/types";
+import type { CommuteEntry, TimeBand, MissedFreq, TransitMethod } from "@/lib/types";
+import { MISSED_FREQS, TRANSIT_METHODS, missedFreqScore, isCarDependent } from "@/lib/types";
 
 /** 시간대별 응답 수 합계 (이용 횟수 가중) */
 export function timeBandDistribution(entries: CommuteEntry[]): Record<TimeBand, number> {
@@ -24,6 +24,23 @@ export function missedFreqDistribution(entries: CommuteEntry[]): Record<MissedFr
     if (e.missedBusFreq && MISSED_FREQS.includes(e.missedBusFreq)) out[e.missedBusFreq] += 1;
   }
   return out;
+}
+
+/** 이동 수단 분포 (응답자 수) */
+export function transitMethodDistribution(entries: CommuteEntry[]): Record<TransitMethod, number> {
+  const out = Object.fromEntries(TRANSIT_METHODS.map((m) => [m, 0])) as Record<TransitMethod, number>;
+  for (const e of entries) {
+    if (e.transitMethod && TRANSIT_METHODS.includes(e.transitMethod)) out[e.transitMethod] += 1;
+  }
+  return out;
+}
+
+/** 직행 부재로 차량(가족 픽업·택시·자가용)에 의존하는 응답자 비율 */
+export function pctCarDependent(entries: CommuteEntry[]): number {
+  const valid = entries.filter((e) => !!e.transitMethod);
+  if (valid.length === 0) return 0;
+  const yes = valid.filter((e) => isCarDependent(e.transitMethod)).length;
+  return (yes / valid.length) * 100;
 }
 
 export function avgCongestion(entries: CommuteEntry[]): number {

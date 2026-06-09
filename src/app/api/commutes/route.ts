@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { commutesStore } from "@/lib/server/commutesDb";
-import { MISSED_FREQS } from "@/lib/types";
-import type { CommuteEntry, TimeBand, MissedFreq } from "@/lib/types";
+import { MISSED_FREQS, TRANSIT_METHODS } from "@/lib/types";
+import type { CommuteEntry, TimeBand, MissedFreq, TransitMethod } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +28,9 @@ export async function POST(req: Request) {
     if (typeof body.weeklyCount !== "number" || body.weeklyCount < 1 || body.weeklyCount > 14) {
       return NextResponse.json({ error: "weeklyCount 범위 오류" }, { status: 400 });
     }
+    if (!TRANSIT_METHODS.includes(body.transitMethod)) {
+      return NextResponse.json({ error: "잘못된 transitMethod" }, { status: 400 });
+    }
     if (typeof body.congestion !== "number" || body.congestion < 1 || body.congestion > 5) {
       return NextResponse.json({ error: "혼잡도는 1~5" }, { status: 400 });
     }
@@ -45,6 +48,7 @@ export async function POST(req: Request) {
       id: crypto.randomUUID(),
       timeBand: body.timeBand,
       weeklyCount: body.weeklyCount,
+      transitMethod: body.transitMethod as TransitMethod,
       congestion: body.congestion as 1 | 2 | 3 | 4 | 5,
       missedBusFreq: body.missedBusFreq as MissedFreq,
       satisfaction: body.satisfaction as 1 | 2 | 3 | 4 | 5,
