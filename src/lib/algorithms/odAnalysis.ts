@@ -36,12 +36,6 @@ export function avgSatisfaction(entries: CommuteEntry[]): number {
   return entries.reduce((s, e) => s + e.satisfaction, 0) / entries.length;
 }
 
-export function avgTransfers(entries: CommuteEntry[]): number {
-  const valid = entries.filter((e) => typeof e.transfers === "number");
-  if (valid.length === 0) return 0;
-  return valid.reduce((s, e) => s + (e.transfers ?? 0), 0) / valid.length;
-}
-
 export function avgExpressIntent(entries: CommuteEntry[]): number {
   const valid = entries.filter((e) => typeof e.expressIntent === "number");
   if (valid.length === 0) return 0;
@@ -73,13 +67,5 @@ export function pctMissedBus(entries: CommuteEntry[]): number {
   const valid = entries.filter((e) => !!e.missedBusFreq);
   if (valid.length === 0) return 0;
   const yes = valid.filter((e) => e.missedBusFreq !== "없음").length;
-  return (yes / valid.length) * 100;
-}
-
-/** 환승을 1회 이상 한다고 답한 비율 */
-export function pctHasTransfer(entries: CommuteEntry[]): number {
-  const valid = entries.filter((e) => typeof e.transfers === "number");
-  if (valid.length === 0) return 0;
-  const yes = valid.filter((e) => (e.transfers ?? 0) >= 1).length;
   return (yes / valid.length) * 100;
 }

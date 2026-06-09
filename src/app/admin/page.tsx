@@ -26,14 +26,14 @@ export default function AdminPage() {
   function exportCSV() {
     const header = [
       "id", "createdAt",
-      "timeBand", "weeklyCount", "transfers",
+      "timeBand", "weeklyCount",
       "congestion", "missedBusFreq",
       "satisfaction", "expressIntent", "note",
     ].join(",");
     const rows = entries.map((e) => {
       return [
         e.id, e.createdAt,
-        `"${e.timeBand}"`, e.weeklyCount, e.transfers ?? "",
+        `"${e.timeBand}"`, e.weeklyCount,
         e.congestion, `"${e.missedBusFreq ?? ""}"`,
         e.satisfaction, e.expressIntent ?? "",
         `"${(e.note ?? "").replace(/"/g, '""')}"`,
@@ -203,7 +203,7 @@ export default function AdminPage() {
                       {e.timeBand} · 혼잡 {e.congestion}/5
                     </p>
                     <p className="text-[var(--text-muted)] mt-0.5">
-                      주{e.weeklyCount}회 · 환승 {e.transfers ?? "—"}회 · 만차 {e.missedBusFreq ?? "—"}
+                      주{e.weeklyCount}회 · 만차 {e.missedBusFreq ?? "—"}
                     </p>
                     <p className="text-[var(--text-muted)] mt-0.5">
                       만족도 {e.satisfaction}/5

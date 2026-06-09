@@ -28,9 +28,6 @@ export async function POST(req: Request) {
     if (typeof body.weeklyCount !== "number" || body.weeklyCount < 1 || body.weeklyCount > 14) {
       return NextResponse.json({ error: "weeklyCount 범위 오류" }, { status: 400 });
     }
-    if (![0, 1, 2, 3].includes(body.transfers)) {
-      return NextResponse.json({ error: "transfers 범위 오류 (0~3)" }, { status: 400 });
-    }
     if (typeof body.congestion !== "number" || body.congestion < 1 || body.congestion > 5) {
       return NextResponse.json({ error: "혼잡도는 1~5" }, { status: 400 });
     }
@@ -48,7 +45,6 @@ export async function POST(req: Request) {
       id: crypto.randomUUID(),
       timeBand: body.timeBand,
       weeklyCount: body.weeklyCount,
-      transfers: body.transfers as 0 | 1 | 2 | 3,
       congestion: body.congestion as 1 | 2 | 3 | 4 | 5,
       missedBusFreq: body.missedBusFreq as MissedFreq,
       satisfaction: body.satisfaction as 1 | 2 | 3 | 4 | 5,

@@ -6,8 +6,6 @@ export interface CommuteEntry {
   timeBand: TimeBand;
   /** 일주일 평균 버스 이용 횟수 (왕복 1회 = 2회) */
   weeklyCount: number;
-  /** 편도 환승 횟수 (3 = 3회 이상) */
-  transfers: 0 | 1 | 2 | 3;
   /** 출퇴근 시간 체감 혼잡도 (1=한산, 5=극도로 만원) */
   congestion: 1 | 2 | 3 | 4 | 5;
   /** 만차로 못 타거나 그냥 보낸 경험 빈도 */

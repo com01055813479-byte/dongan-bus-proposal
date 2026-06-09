@@ -8,7 +8,7 @@ import type { TimeBand, MissedFreq } from "@/lib/types";
 import { MISSED_FREQS } from "@/lib/types";
 import { cn } from "@/lib/utils/cn";
 
-const COMPLETED_KEY = "survey-completed-v9";
+const COMPLETED_KEY = "survey-completed-v10";
 const BYPASS_PATHS = ["/admin", "/settings"];
 
 const TIME_BANDS: TimeBand[] = [
@@ -28,13 +28,6 @@ const CONGESTION_LABELS = [
   "한산함", "여유 있음", "보통 (서서 가도 편함)", "만원 (불편함)", "극도로 만원 (못 타기도)",
 ];
 
-const TRANSFER_OPTIONS: { value: 0 | 1 | 2 | 3; label: string }[] = [
-  { value: 0, label: "0회 (직통)" },
-  { value: 1, label: "1회" },
-  { value: 2, label: "2회" },
-  { value: 3, label: "3회+" },
-];
-
 export function WelcomeSurveyOverlay() {
   const pathname = usePathname();
   const router = useRouter();
@@ -45,7 +38,6 @@ export function WelcomeSurveyOverlay() {
 
   const [timeBand, setTimeBand] = useState<TimeBand>("출근(06~09)");
   const [weeklyCount, setWeeklyCount] = useState(4);
-  const [transfers, setTransfers] = useState<0 | 1 | 2 | 3>(0);
   const [congestion, setCongestion] = useState<1 | 2 | 3 | 4 | 5>(3);
   const [missedBusFreq, setMissedBusFreq] = useState<MissedFreq>("없음");
   const [satisfaction, setSatisfaction] = useState<1 | 2 | 3 | 4 | 5>(3);
@@ -78,7 +70,7 @@ export function WelcomeSurveyOverlay() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           timeBand, weeklyCount,
-          transfers, congestion, missedBusFreq,
+          congestion, missedBusFreq,
           satisfaction, expressIntent,
           note: note || undefined,
         }),
@@ -162,22 +154,6 @@ export function WelcomeSurveyOverlay() {
                     className={cn(
                       "px-1 py-2 rounded-lg text-[11px] font-semibold transition-colors",
                       weeklyCount === opt.value
-                        ? "bg-[var(--accent)] text-white"
-                        : "bg-[var(--bg-soft)] hover:bg-[var(--border)] text-[var(--text-base)]"
-                    )}>
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            </FormBlock>
-
-            <FormBlock label="편도 환승 횟수">
-              <div className="grid grid-cols-4 gap-1.5">
-                {TRANSFER_OPTIONS.map((opt) => (
-                  <button key={opt.value} type="button" onClick={() => setTransfers(opt.value)}
-                    className={cn(
-                      "px-1 py-2 rounded-lg text-[11px] font-semibold transition-colors",
-                      transfers === opt.value
                         ? "bg-[var(--accent)] text-white"
                         : "bg-[var(--bg-soft)] hover:bg-[var(--border)] text-[var(--text-base)]"
                     )}>

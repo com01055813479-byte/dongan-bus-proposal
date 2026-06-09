@@ -3,15 +3,15 @@
 import { useState } from "react";
 import {
   BarChart3, Clock, Bus, Star, ThumbsUp, AlertTriangle,
-  Sparkles, Info, X, Users, Repeat,
+  Sparkles, Info, X, Users,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { useCommutes } from "@/lib/hooks/useCommutes";
 import {
   timeBandDistribution, missedFreqDistribution,
-  avgCongestion, avgSatisfaction, avgTransfers,
+  avgCongestion, avgSatisfaction,
   avgExpressIntent, avgMissedScore,
-  pctHighIntent, pctHighCongestion, pctMissedBus, pctHasTransfer,
+  pctHighIntent, pctHighCongestion, pctMissedBus,
 } from "@/lib/algorithms/odAnalysis";
 import { MISSED_FREQS } from "@/lib/types";
 
@@ -45,13 +45,11 @@ export default function AnalysisPage() {
 
   const conAvg     = avgCongestion(entries);
   const satAvg     = avgSatisfaction(entries);
-  const transAvg   = avgTransfers(entries);
   const intentAvg  = avgExpressIntent(entries);
   const missedAvg  = avgMissedScore(entries);
   const highIntent = pctHighIntent(entries);
   const highCon    = pctHighCongestion(entries);
   const missedPct  = pctMissedBus(entries);
-  const transferPct = pctHasTransfer(entries);
 
   const maxTimeCount = Math.max(...Object.values(timeBands), 1);
   const maxMissedCount = Math.max(...Object.values(missedDist), 1);
@@ -142,7 +140,7 @@ export default function AnalysisPage() {
               <div className="grid grid-cols-4 gap-2 mt-4 text-center">
                 <MiniStat label="혼잡도" value={`${conAvg.toFixed(1)}/5`} highlight />
                 <MiniStat label="만차경험" value={`${missedPct.toFixed(0)}%`} />
-                <MiniStat label="평균 환승" value={`${transAvg.toFixed(1)}회`} />
+                <MiniStat label="만족도" value={`${satAvg.toFixed(1)}/5`} />
                 <MiniStat label="이용 의향" value={`${intentAvg.toFixed(1)}/5`} />
               </div>
             </>
@@ -175,12 +173,7 @@ export default function AnalysisPage() {
               highlight
             />
             <EvidenceRow
-              num="03" title="환승 부담"
-              value={`평균 ${transAvg.toFixed(1)}회`}
-              desc={`응답자 편도 평균 ${transAvg.toFixed(1)}회 환승 · 환승 경험자 ${transferPct.toFixed(0)}%`}
-            />
-            <EvidenceRow
-              num="04" title="급행 이용 의향"
+              num="03" title="급행 이용 의향"
               value={`${highIntent.toFixed(0)}%`}
               desc={`응답자 중 ${highIntent.toFixed(0)}%가 급행 버스 도입 시 "꼭 쓰겠다" 또는 "쓸 것 같다"고 답변`}
             />
@@ -256,29 +249,6 @@ export default function AnalysisPage() {
           </div>
         </CardContent>
       </Card>
-
-      {/* 환승 부담 요약 */}
-      {hasData && (
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              <span className="flex items-center gap-2">
-                <Repeat size={16} className="text-[var(--accent)]" />
-                환승 부담
-              </span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-3 text-center">
-              <MiniStat label="평균 환승 횟수" value={`${transAvg.toFixed(1)}회`} highlight />
-              <MiniStat label="환승 경험자 비율" value={`${transferPct.toFixed(0)}%`} />
-            </div>
-            <p className="text-[11px] text-[var(--text-muted)] mt-3 leading-relaxed text-center">
-              급행 버스는 주요 거점을 직결해 환승 횟수를 줄일 수 있습니다.
-            </p>
-          </CardContent>
-        </Card>
-      )}
 
       {/* 결론 */}
       <Card>
