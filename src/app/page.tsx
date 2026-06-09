@@ -10,7 +10,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { useCommutes } from "@/lib/hooks/useCommutes";
-import { aggregateRoutes } from "@/lib/algorithms/odAnalysis";
+import { avgCongestion } from "@/lib/algorithms/odAnalysis";
 
 const FEATURE_CARDS = [
   { href: "/analysis", icon: BarChart3, title: "수요 분석 보기", desc: "수집된 통근 패턴 시각화" },
@@ -19,7 +19,7 @@ const FEATURE_CARDS = [
 
 export default function HomePage() {
   const { entries, hydrated } = useCommutes();
-  const uniqueRoutes = aggregateRoutes(entries).length;
+  const conAvg = avgCongestion(entries);
 
   return (
     <div className="flex flex-col gap-5">
@@ -53,7 +53,7 @@ export default function HomePage() {
         <CardContent>
           <div className="grid grid-cols-2 gap-3 text-center">
             <Stat label="설문 응답" value={hydrated ? `${entries.length}` : "—"} />
-            <Stat label="언급된 노선" value={hydrated ? `${uniqueRoutes}` : "—"} accent />
+            <Stat label="평균 혼잡도" value={hydrated && entries.length > 0 ? `${conAvg.toFixed(1)}/5` : "—"} accent />
           </div>
           <p className="text-[11px] text-[var(--text-muted)] mt-3 leading-relaxed">
             동안구민의 통근 혼잡 경험을 모으는 중입니다. 첫 방문 시 설문에 참여해 주신 모든 분께 감사드립니다.
@@ -67,9 +67,9 @@ export default function HomePage() {
           <CardTitle>프로젝트 진행 단계</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
-          <Step n="1" title="통근 설문" desc="동안구민이 자주 이용하는 노선의 혼잡도 입력" />
-          <Step n="2" title="수요 분석"     desc="만원이 가장 심한 노선/구간 자동 도출" />
-          <Step n="3" title="시청 제출"     desc="분석 결과로 안양시청에 급행 셔틀 도입 제안" />
+          <Step n="1" title="버스 설문" desc="동안구민의 출퇴근 버스 혼잡 경험 수집" />
+          <Step n="2" title="혼잡 분석"     desc="혼잡도·만차 경험·환승 부담을 통계로 도출" />
+          <Step n="3" title="시청 제출"     desc="분석 결과로 안양시청에 급행 버스 도입 제안" />
         </CardContent>
       </Card>
 

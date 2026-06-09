@@ -1,77 +1,12 @@
 /**
- * 노선/구간별 혼잡도 분석.
- * "어느 노선이 얼마나 만원인가" 라는 직접적인 증거에 집중.
+ * 버스 통근 설문 분석.
+ * "버스가 얼마나 오래 걸리고, 얼마나 만원이고, 급행 수요가 있는가" 에 집중.
  */
 
-import type { CommuteEntry, RouteStat, TimeBand, TransportMode } from "@/lib/types";
-import { normalizeText } from "@/lib/types";
+import type { CommuteEntry, TimeBand, MissedFreq, TransitMethod } from "@/lib/types";
+import { MISSED_FREQS, TRANSIT_METHODS, missedFreqScore, isCarDependent } from "@/lib/types";
 
-/** routeText 별로 통계 집계 */
-export function aggregateRoutes(entries: CommuteEntry[]): RouteStat[] {
-  type Acc = RouteStat & {
-    _conSum: number; _conCount: number;
-    _satSum: number; _satCount: number;
-    _minSum: number; _minCount: number;
-    _intentSum: number; _intentCount: number;
-  };
-  const map = new Map<string, Acc>();
-
-  for (const e of entries) {
-    const key = normalizeText(e.routeText);
-    if (!key) continue;
-
-    const existing = map.get(key);
-    if (existing) {
-      existing.totalCount += e.weeklyCount;
-      existing.responseCount += 1;
-      existing.byTimeBand[e.timeBand] = (existing.byTimeBand[e.timeBand] ?? 0) + e.weeklyCount;
-      existing._conSum += e.congestion;
-      existing._conCount += 1;
-      existing._satSum += e.satisfaction;
-      existing._satCount += 1;
-      if (typeof e.currentMinutes === "number") {
-        existing._minSum += e.currentMinutes;
-        existing._minCount += 1;
-      }
-      if (typeof e.expressIntent === "number") {
-        existing._intentSum += e.expressIntent;
-        existing._intentCount += 1;
-      }
-    } else {
-      map.set(key, {
-        routeText: key,
-        totalCount: e.weeklyCount,
-        responseCount: 1,
-        avgCongestion: e.congestion,
-        avgSatisfaction: e.satisfaction,
-        avgCurrentMinutes: 0,
-        avgExpressIntent: 0,
-        byTimeBand: { [e.timeBand]: e.weeklyCount },
-        _conSum: e.congestion, _conCount: 1,
-        _satSum: e.satisfaction, _satCount: 1,
-        _minSum: typeof e.currentMinutes === "number" ? e.currentMinutes : 0,
-        _minCount: typeof e.currentMinutes === "number" ? 1 : 0,
-        _intentSum: typeof e.expressIntent === "number" ? e.expressIntent : 0,
-        _intentCount: typeof e.expressIntent === "number" ? 1 : 0,
-      });
-    }
-  }
-
-  return Array.from(map.values())
-    .map((p) => ({
-      routeText: p.routeText,
-      totalCount: p.totalCount,
-      responseCount: p.responseCount,
-      avgCongestion:    p._conSum / p._conCount,
-      avgSatisfaction:  p._satSum / p._satCount,
-      avgCurrentMinutes: p._minCount > 0    ? p._minSum / p._minCount       : 0,
-      avgExpressIntent:  p._intentCount > 0 ? p._intentSum / p._intentCount : 0,
-      byTimeBand: p.byTimeBand,
-    }))
-    .sort((a, b) => b.totalCount - a.totalCount);
-}
-
-/** 시간대별 응답 수 합계 */
+/** 시간대별 응답 수 합계 (이용 횟수 가중) */
 export function timeBandDistribution(entries: CommuteEntry[]): Record<TimeBand, number> {
   const out: Record<TimeBand, number> = {
     "출근(06~09)": 0, "퇴근(17~21)": 0, "학원 하원(21~23)": 0, "기타 시간": 0,
@@ -80,14 +15,32 @@ export function timeBandDistribution(entries: CommuteEntry[]): Record<TimeBand, 
   return out;
 }
 
-/** 교통수단별 응답 수 합계 */
-export function transportModeDistribution(entries: CommuteEntry[]): Record<TransportMode, number> {
-  const out: Record<TransportMode, number> = {
-    "버스": 0, "지하철": 0, "도보": 0, "자전거": 0,
-    "자동차": 0, "헬리콥터": 0, "비행기": 0, "기타": 0,
+/** 만차 경험 빈도 분포 (응답자 수) */
+export function missedFreqDistribution(entries: CommuteEntry[]): Record<MissedFreq, number> {
+  const out: Record<MissedFreq, number> = {
+    "없음": 0, "가끔": 0, "보통": 0, "흔함": 0,
   };
-  for (const e of entries) out[e.currentMode] += e.weeklyCount;
+  for (const e of entries) {
+    if (e.missedBusFreq && MISSED_FREQS.includes(e.missedBusFreq)) out[e.missedBusFreq] += 1;
+  }
   return out;
+}
+
+/** 이동 수단 분포 (응답자 수) */
+export function transitMethodDistribution(entries: CommuteEntry[]): Record<TransitMethod, number> {
+  const out = Object.fromEntries(TRANSIT_METHODS.map((m) => [m, 0])) as Record<TransitMethod, number>;
+  for (const e of entries) {
+    if (e.transitMethod && TRANSIT_METHODS.includes(e.transitMethod)) out[e.transitMethod] += 1;
+  }
+  return out;
+}
+
+/** 직행 부재로 차량(가족 픽업·택시·자가용)에 의존하는 응답자 비율 */
+export function pctCarDependent(entries: CommuteEntry[]): number {
+  const valid = entries.filter((e) => !!e.transitMethod);
+  if (valid.length === 0) return 0;
+  const yes = valid.filter((e) => isCarDependent(e.transitMethod)).length;
+  return (yes / valid.length) * 100;
 }
 
 export function avgCongestion(entries: CommuteEntry[]): number {
@@ -100,16 +53,17 @@ export function avgSatisfaction(entries: CommuteEntry[]): number {
   return entries.reduce((s, e) => s + e.satisfaction, 0) / entries.length;
 }
 
-export function avgCurrentMinutes(entries: CommuteEntry[]): number {
-  const valid = entries.filter((e) => typeof e.currentMinutes === "number");
-  if (valid.length === 0) return 0;
-  return valid.reduce((s, e) => s + (e.currentMinutes ?? 0), 0) / valid.length;
-}
-
 export function avgExpressIntent(entries: CommuteEntry[]): number {
   const valid = entries.filter((e) => typeof e.expressIntent === "number");
   if (valid.length === 0) return 0;
   return valid.reduce((s, e) => s + (e.expressIntent ?? 0), 0) / valid.length;
+}
+
+/** 만차 경험 평균 점수 (0~100) */
+export function avgMissedScore(entries: CommuteEntry[]): number {
+  const valid = entries.filter((e) => !!e.missedBusFreq);
+  if (valid.length === 0) return 0;
+  return valid.reduce((s, e) => s + missedFreqScore(e.missedBusFreq), 0) / valid.length;
 }
 
 export function pctHighIntent(entries: CommuteEntry[]): number {
@@ -123,4 +77,12 @@ export function pctHighCongestion(entries: CommuteEntry[]): number {
   if (entries.length === 0) return 0;
   const high = entries.filter((e) => e.congestion >= 4).length;
   return (high / entries.length) * 100;
+}
+
+/** 만차로 못 타거나 그냥 보낸 경험이 "있다"고 답한 비율 (없음 제외) */
+export function pctMissedBus(entries: CommuteEntry[]): number {
+  const valid = entries.filter((e) => !!e.missedBusFreq);
+  if (valid.length === 0) return 0;
+  const yes = valid.filter((e) => e.missedBusFreq !== "없음").length;
+  return (yes / valid.length) * 100;
 }
