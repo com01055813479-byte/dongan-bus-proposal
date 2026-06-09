@@ -22,9 +22,9 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     href: "/analysis",
-    label: "수요 분석",
+    label: "혼잡 분석",
     icon: BarChart3,
-    description: "수집된 통근 패턴 시각화",
+    description: "버스 혼잡·이동수단 시각화",
   },
   {
     href: "/settings",

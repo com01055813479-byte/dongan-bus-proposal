@@ -122,10 +122,10 @@ export default function SettingsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col">
-          <InfoRow label="버전" value="0.3.0" />
+          <InfoRow label="버전" value="0.4.0" />
           <InfoRow label="프로젝트" value="동안구 급행 버스 제안" />
-          <InfoRow label="용도" value="학생 비영리 프로젝트" />
-          <InfoRow label="설문 방식" value="노선/구간 혼잡도 평가" />
+          <InfoRow label="용도" value="학생 비영리 프로젝트 (인덕원고)" />
+          <InfoRow label="설문 방식" value="버스 혼잡·이동수단 설문" />
           <InfoRow label="저장소" value="Upstash Redis (Vercel KV)" />
           <InfoRow label="호스팅" value="Vercel" />
           <InfoRow label="프레임워크" value="Next.js 15 · Tailwind v4" last />
