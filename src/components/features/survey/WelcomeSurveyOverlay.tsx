@@ -203,7 +203,7 @@ export function WelcomeSurveyOverlay() {
               </div>
             </FormBlock>
 
-            <FormBlock label="현재 버스 통근의 만족도">
+            <FormBlock label="현재 버스 이용 만족도">
               <StarRow value={satisfaction} onChange={setSatisfaction} />
               <p className="text-center text-[11px] text-[var(--text-muted)] mt-1">
                 {["매우 불편", "불편", "보통", "만족", "매우 만족"][satisfaction - 1]}
@@ -230,7 +230,7 @@ export function WelcomeSurveyOverlay() {
 
             <FormBlock label="하고 싶은 말 (선택)">
               <input type="text" value={note} onChange={(e) => setNote(e.target.value)}
-                placeholder="예: 환승이 많아요 / 막차가 일찍 끊겨요"
+                placeholder="예: 배차 간격이 길어요 / 막차가 일찍 끊겨요"
                 className="input rounded-lg px-3 py-2 text-sm w-full" maxLength={120} />
             </FormBlock>
 

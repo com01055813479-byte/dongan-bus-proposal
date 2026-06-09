@@ -13,7 +13,7 @@ import { useCommutes } from "@/lib/hooks/useCommutes";
 import { avgCongestion } from "@/lib/algorithms/odAnalysis";
 
 const FEATURE_CARDS = [
-  { href: "/analysis", icon: BarChart3, title: "수요 분석 보기", desc: "수집된 통근 패턴 시각화" },
+  { href: "/analysis", icon: BarChart3, title: "혼잡 분석 보기", desc: "버스 혼잡·이동수단 데이터 시각화" },
   { href: "/settings", icon: Settings,  title: "설정",           desc: "테마, 관리자 접근" },
 ];
 
@@ -36,12 +36,12 @@ export default function HomePage() {
         <h1 className="text-2xl sm:text-3xl font-bold text-[var(--text-strong)] leading-tight">
           동안구
           <br />
-          <span className="text-[var(--accent)]">급행 셔틀버스</span> 제안
+          <span className="text-[var(--accent)]">급행 버스</span> 제안
         </h1>
         <p className="text-sm text-[var(--text-muted)] mt-3 leading-relaxed">
-          마을버스가 모든 정류장에 정차해 느린 동안구 안에서, 주요 거점만 빠르게 잇는
-          <strong className="text-[var(--text-base)]"> 급행 셔틀 노선</strong>이 필요한 곳을
-          시민 데이터로 모아 안양시청에 제안하는 프로젝트입니다.
+          버스가 모든 정류장에 정차해 느린 동안구 안에서,
+          <strong className="text-[var(--text-base)]"> 학원가와 주요 역을 빠르게 잇는 급행 버스</strong>가 필요한지를
+          시민 설문으로 확인해 안양시청에 제안하는 프로젝트입니다.
         </p>
       </section>
 
@@ -56,7 +56,7 @@ export default function HomePage() {
             <Stat label="평균 혼잡도" value={hydrated && entries.length > 0 ? `${conAvg.toFixed(1)}/5` : "—"} accent />
           </div>
           <p className="text-[11px] text-[var(--text-muted)] mt-3 leading-relaxed">
-            동안구민의 통근 혼잡 경험을 모으는 중입니다. 첫 방문 시 설문에 참여해 주신 모든 분께 감사드립니다.
+            동안구민의 버스 혼잡 경험을 모으는 중입니다. 첫 방문 시 설문에 참여해 주신 모든 분께 감사드립니다.
           </p>
         </CardContent>
       </Card>
@@ -68,7 +68,7 @@ export default function HomePage() {
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           <Step n="1" title="버스 설문" desc="동안구민의 출퇴근 버스 혼잡 경험 수집" />
-          <Step n="2" title="혼잡 분석"     desc="혼잡도·만차 경험·환승 부담을 통계로 도출" />
+          <Step n="2" title="혼잡 분석"     desc="혼잡도·만차 경험·이동수단을 통계로 도출" />
           <Step n="3" title="시청 제출"     desc="분석 결과로 안양시청에 급행 버스 도입 제안" />
         </CardContent>
       </Card>

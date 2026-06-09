@@ -6,7 +6,7 @@ import { WelcomeSurveyOverlay } from "@/components/features/survey/WelcomeSurvey
 
 export const metadata: Metadata = {
   title: "동안구 급행 버스 제안",
-  description: "동안구 시민의 통근 패턴 데이터를 모아 급행 셔틀버스 노선을 제안합니다.",
+  description: "동안구 시민의 버스 혼잡 경험을 설문으로 모아, 학원가와 주요 역을 잇는 급행 버스 도입을 안양시청에 제안합니다.",
 };
 
 export default function RootLayout({
