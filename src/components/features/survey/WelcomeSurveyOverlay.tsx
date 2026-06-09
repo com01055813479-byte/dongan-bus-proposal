@@ -8,18 +8,18 @@ import type { TimeBand, MissedFreq, TransitMethod } from "@/lib/types";
 import { MISSED_FREQS, TRANSIT_METHODS } from "@/lib/types";
 import { cn } from "@/lib/utils/cn";
 
-const COMPLETED_KEY = "survey-completed-v12";
+const COMPLETED_KEY = "survey-completed-v13";
 const BYPASS_PATHS = ["/admin", "/settings"];
 
 const TIME_BANDS: TimeBand[] = [
   "출근(06~09)", "퇴근(17~21)", "학원 하원(21~23)", "기타 시간",
 ];
 
-/** 이용 빈도 — 대표 주간 횟수로 매핑 (분석 평균 유지용) */
+/** 주간 이용 횟수 — 대표값으로 매핑 (분석 평균 유지용) */
 const FREQUENCY_OPTIONS: { label: string; value: number }[] = [
-  { label: "가끔", value: 2 },
-  { label: "보통", value: 4 },
-  { label: "자주", value: 6 },
+  { label: "주 1~2회", value: 2 },
+  { label: "주 3~4회", value: 4 },
+  { label: "주 5~6회", value: 6 },
   { label: "거의 매일", value: 10 },
 ];
 
@@ -148,7 +148,7 @@ export function WelcomeSurveyOverlay() {
               </div>
             </FormBlock>
 
-            <FormBlock label="버스를 얼마나 자주 타나요?">
+            <FormBlock label="버스를 일주일에 몇 번 타나요?">
               <div className="grid grid-cols-4 gap-1.5">
                 {FREQUENCY_OPTIONS.map((opt) => (
                   <button key={opt.label} type="button" onClick={() => setWeeklyCount(opt.value)}
